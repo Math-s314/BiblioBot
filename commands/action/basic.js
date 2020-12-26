@@ -209,21 +209,33 @@ function GetMessageParameter(options, param) {
 /**
  * 
  * @param {string} link 
- * @param {string} param TODO : transform in string[]
+ * @param {string[]} param
  * @param {function(Error, any)} seriesCallback
  */
 function GetInfoProperty(link, param, seriesCallback) {
-    if (param == '')
+    if (param == [])
         return;
 
     let getParam = {
         auth: Import.auth,
         fileId: link,
-        fields: ''
+        fields: 'appProperties('
     };
-    getParam.fields = ("appProperties(" + new String(param) + ")");
 
-    Import.drive.files.get(getParam, function (err, res) { seriesCallback(err, res.data.appProperties[param]); });
+    for (let i = 0; i < param.length; i++) {
+        if(i != param.length - 1)
+            getParam.fields += param[i] + ',';
+        else
+            getParam.fields += param[i] + ')';
+    }
+
+    Import.drive.files.get(getParam, function (err, res) { 
+        let ret = [];
+        param.forEach(element => {
+            ret.push(res.data.appProperties[element]);
+        });
+        seriesCallback(err, ret); 
+    });
 }
 
 /**
@@ -364,7 +376,7 @@ function DeleteFile(link, reason, seriesCallback) {
     }
 
     async.series([
-        function (call) { GetInfoProperty(link, 'author', call); }
+        function (call) { GetInfoProperty(link, ['author'], call); }
     ], function (err, result) {
         var name = '';
         let shortcut = '';
@@ -395,7 +407,7 @@ function DeleteFile(link, reason, seriesCallback) {
             },
             function (call) {
                 let fakeMessage = {
-                    author: Import.client.users.cache.get(result[0])
+                    author: Import.client.users.cache.get(result[0][0])
                 };
                 SendRightChannel(fakeMessage, reason, 'result', 'Your file will be deleted, I send it to you. Reason :\n' + reason[1], (msg) => { 
                     fs.unlink(name, (err) => {

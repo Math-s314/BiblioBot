@@ -391,24 +391,21 @@ function ValidateCourse(message, options) {
         }
 
         async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'subject', cb); },
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'author', cb); },
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'refuse', cb); },
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'level', cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'author', 'refuse', 'level'], cb); }
         ], function (err, resultBis) {
-            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0])]);
+            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
 
-            if (!roleCondition || message.author.id == resultBis[1]) {
+            if (!roleCondition || message.author.id == resultBis[0][1]) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not allowed to do that.');
                 return;
             }
 
-            if (resultBis[2] == 'r') {
+            if (resultBis[0][2] == 'r') {
                 BasicFunction.SendRightChannel(message, options, 'error', 'This course has already been refused.');
                 return;
             }
 
-            var position = 'valide/' + resultBis[0] + '/' + resultBis[3];
+            var position = 'valide/' + resultBis[0][0] + '/' + resultBis[0][3];
 
             async.series([
                 function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, position, cb); },
@@ -478,16 +475,15 @@ function RefuseCourse(message, options) {
             valide = false;
 
         async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'subject', cb); },
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'level', cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'level'], cb); }
         ], function (err, resultBis) {
-            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0])]);
+            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
             if(!roleCondition) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not allowed to do that');
                 return;
             }
 
-            var position = 'valide/' + resultBis[0] + '/' + resultBis[1];
+            var position = 'valide/' + resultBis[0][0] + '/' + resultBis[0][1];
             async.series([
                 function (cb) { BasicFunction.SetInfoProperty(result[0], 'refuse', 'r', cb); },
                 function (cb) {
@@ -558,14 +554,9 @@ function UpdateCourse(message, options) {
                     call(null, 'nothing');
                 })
             },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'vera', call) },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'verb', call) },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'author', call) },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'subject', call) },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'level', call) },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'type', call) }
+            function (call) { BasicFunction.GetInfoProperty(FileLink, ['vera', 'verb', 'author', 'subject', 'level', 'type'], call) }
         ], function (err, resultatBis) {
-            var version = [resultatBis[1], resultatBis[2]];
+            var version = [resultatBis[1][0], resultatBis[1][1]];
 
             if (wait) {
                 version[1]++;
@@ -575,12 +566,12 @@ function UpdateCourse(message, options) {
                 version[1] = 0;
             }
 
-            if (resultatBis[3] != message.author.id) {
+            if (resultatBis[1][2] != message.author.id) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not the course\'s author');
                 return;
             }
 
-            var ParamInfo = [resultatBis[4], resultatBis[5], resultatBis[3], resultatBis[6], version[0], version[1], 'nr'];
+            var ParamInfo = [resultatBis[1][3], resultatBis[1][4], resultatBis[1][2], resultatBis[1][5], version[0], version[1], 'nr'];
 
             async.series([
                 function (cb) {
@@ -648,9 +639,9 @@ function DeleteCourse(message, options) {
         }
 
         async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'author', cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], ['author'], cb); }
         ], function (err, resultBis) {
-            if (resultBis[0] != message.author.id) {
+            if (resultBis[0][0] != message.author.id) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not the course\'s author');
                 return;
             }
