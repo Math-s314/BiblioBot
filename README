@@ -1,0 +1,7 @@
+Biblio-Bot
+
+Global informations :
+    Biblio-Bot is Discord bot which allows us to handle a files' library stored on a GDrive through Discord commands (special messages). To add the bot, use this link :
+    https://discord.com/oauth2/authorize?client_id=752199573295988817&scope=bot&permissions=249024
+    If you want more informations on how to use this bot, check out the documentation.docx file (it's a good entry point for the devlopers too). This README file is for the devloppers.
+    This reposistory stores some examples of commands in the 'example/' directory.

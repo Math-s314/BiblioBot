@@ -1,0 +1,52 @@
+/*
+"SchoolServer_settings"
+
+Here is an example for a french school server who want to handle courses and tutorial.
+one line = one message
+
+Math's
+*/
+
+url-link:<The URL of your G-DRive folder>
+
+/*Subjects :*/
+cs -subject:maths -@<Prof> #<Channel>
+cs -subject:svt -@<Prof> #<Channel>
+cs -subject:techno -@<Prof> #<Channel>
+cs -subject:physique -@<Prof> #<Channel>
+cs -subject:chimie -@<Prof> #<Channel>
+
+cs -subject:anglais -@<Prof> #<Channel>
+cs -subject:allemand -@<Prof> #<Channel>
+cs -subject:autres_langues -@<Prof> #<Channel>
+
+cs -subject:histoire -@<Prof> #<Channel>
+cs -subject:geographie -@<Prof> #<Channel>
+cs -subject:emc -@<Prof> #<Channel>
+cs -subject:ses -@<Prof> #<Channel>
+
+cs -subject:francais -@<Prof> #<Channel>
+cs -subject:latin -@<Prof> #<Channel>
+cs -subject:grec -@<Prof> #<Channel>
+...
+
+/*Levels*/
+cs -level:6eme -@<Eleves>
+cs -level:5eme -@<Eleves>
+cs -level:4eme -@<Eleves>
+cs -level:3eme -@<Eleves>
+cs -level:2nd -@<Eleves>
+cs -level:1ere -@<Eleves>
+cs -level:term -@<Eleves>
+...
+
+/*Prof channel*/
+ms -prof -#<Prof Channel>
+...
+
+/*Verification*/
+hs -view:saved
+hs -view:run
+hs -saved
+
+/*Now all is ready !!!*/
