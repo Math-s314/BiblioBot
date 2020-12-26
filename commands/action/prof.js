@@ -479,7 +479,8 @@ function RefuseCourse(message, options) {
 
         async.series([
             function (cb) { BasicFunction.GetInfoProperty(result[0], 'subject', cb); },
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'level', cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], 'level', cb); },
+            function (cb) { BasicFunction.GetInfoProperty(result[0], 'author', cb); }
         ], function (err, resultBis) {
             var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0])]);
             if(!roleCondition) {
@@ -497,8 +498,15 @@ function RefuseCourse(message, options) {
                     {
                         BasicFunction.MoveFile(position, result[0], 'wait', guild, cb);
                     }
+                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.', (msg) => { cb(); });
+                },
+                function (cb) {
+                    let fakeMessage = {
+                        author: Import.client.users.cache.get(resultBis[2])
+                    };
 
-                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.');
+                    if(fakeMessage.author != undefined && message.author.id != resultBis[2])
+                        BasicFunction.SendRightChannel(fakeMessage, options, 'result', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username, (msg) => { cb(); }, [], '', false);
                 }
             ]);
         })
