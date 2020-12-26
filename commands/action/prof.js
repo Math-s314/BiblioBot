@@ -416,6 +416,12 @@ function ValidateCourse(message, options) {
             ], function (err, resultTierce) {
                 BasicFunction.DeleteFile(resultTierce[0], [options[0], 'It\'s the old version of your file. With the validation of the new one, the old one has been deleted.'], function (err, res) {
                     BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully validated.');
+                    
+                    let fakeMessage = {
+                        author: Import.client.users.cache.get(resultBis[1])
+                    };
+                    if(fakeMessage.author != undefined)
+                        BasicFunction.SendRightChannel(fakeMessage, options, 'result', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username, (msg) => {}, [], '', false);
                 });
             });
         });
