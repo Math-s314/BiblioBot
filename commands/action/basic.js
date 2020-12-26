@@ -397,7 +397,7 @@ function DeleteFile(link, reason, seriesCallback) {
                 let fakeMessage = {
                     author: Import.client.users.cache.get(result[0])
                 };
-                SendRightChannel(fakeMessage, reason, 'result', 'Your file will be deleted, I send it to you. Reason :\n' + reason[1], (msg) => { 
+                SendRightChannel(fakeMessage, reason, 'info', 'Your file will be deleted, I send it to you. Reason :\n' + reason[1], (msg) => { 
                     fs.unlink(name, (err) => {
                         call();
                     });

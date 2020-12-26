@@ -421,7 +421,7 @@ function ValidateCourse(message, options) {
                         author: Import.client.users.cache.get(resultBis[1])
                     };
                     if(fakeMessage.author != undefined)
-                        BasicFunction.SendRightChannel(fakeMessage, options, 'result', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username, (msg) => {}, [], '', false);
+                        BasicFunction.SendRightChannel(fakeMessage, options, 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username, (msg) => {}, [], '', false);
                 });
             });
         });
@@ -512,7 +512,7 @@ function RefuseCourse(message, options) {
                     };
 
                     if(fakeMessage.author != undefined && message.author.id != resultBis[2])
-                        BasicFunction.SendRightChannel(fakeMessage, options, 'result', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username, (msg) => { cb(); }, [], '', false);
+                        BasicFunction.SendRightChannel(fakeMessage, options, 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username, (msg) => { cb(); }, [], '', false);
                 }
             ]);
         })
