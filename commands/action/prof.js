@@ -420,8 +420,14 @@ function ValidateCourse(message, options) {
                     let fakeMessage = {
                         author: Import.client.users.cache.get(resultBis[1])
                     };
-                    if(fakeMessage.author != undefined)
-                        BasicFunction.SendRightChannel(fakeMessage, options, 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username, (msg) => {}, [], '', false);
+                    if(fakeMessage.author != undefined){
+                        if(Import.UserParameters.get(resultBis[1]) == undefined) {
+                            Import.UserParameters.set(resultBis[1], new Import.UserVariable());
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username + '\nIf you want to disable this information messages send `info -disable` to the bot in DM', (msg) => {}, [], '', false);
+                        }
+                        else if(Import.UserParameters.get(resultBis[1]).WantDM)
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username, (msg) => {}, [], '', false);
+                    }
                 });
             });
         });
@@ -510,9 +516,14 @@ function RefuseCourse(message, options) {
                     let fakeMessage = {
                         author: Import.client.users.cache.get(resultBis[2])
                     };
-
-                    if(fakeMessage.author != undefined && message.author.id != resultBis[2])
-                        BasicFunction.SendRightChannel(fakeMessage, options, 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username, (msg) => { cb(); }, [], '', false);
+                    if(fakeMessage.author != undefined && message.author.id != resultBis[2]){
+                        if(Import.UserParameters.get(resultBis[2]) == undefined) {
+                            Import.UserParameters.set(resultBis[2], new Import.UserVariable());
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username + '\nIf you want to disable this information messages send `info -disable` to the bot in DM', (msg) => {}, [], '', false);
+                        }
+                        else if(Import.UserParameters.get(resultBis[2]).WantDM)
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username, (msg) => {}, [], '', false);
+                    }
                 }
             ]);
         })

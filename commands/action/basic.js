@@ -586,6 +586,24 @@ function LoadSettings(guild) {
     }
 }
 
+/**
+ * @param {Discord.Snowflake} user
+ */
+function SaveUserData(user) {
+    const data = JSON.stringify(Import.UserParameters.get(user), null, 4);
+    fs.writeFileSync("usersfiles/" + user + '.jsonset', data, { encoding: 'utf-8' });
+}
+
+/**
+ * @param {Discord.Snowflake} user
+ */
+function LoadUserData(user) {
+    if (fs.existsSync("usersfiles/" + user + '.jsonset')) {
+        const data = fs.readFileSync("usersfiles/" + user + '.jsonset', 'utf-8');
+        Import.UserParameters.set(user, JSON.parse(data));
+    }
+}
+
 module.exports = {
     name : 'basic_function',
     
@@ -607,5 +625,7 @@ module.exports = {
     FindFolderLink: FindFolderLink, //AsyncOKOK
 
     SaveSettings : SaveSettings,
-    LoadSettings : LoadSettings
+    LoadSettings : LoadSettings,
+    SaveUserData : SaveUserData,
+    LoadUserData : LoadUserData
 }
