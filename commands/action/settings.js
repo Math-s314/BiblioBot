@@ -34,7 +34,7 @@ function CreateASetting(message, options) {
     {
         if(param == '')
         {
-            BasicFunction.SendRightChannel(message, options, 'error', 'Missing value for the \'level\' argument !');
+            BasicFunction.SendRightChannel(message, options, 'error', 'Missing value for the `level` argument !');
             return;
         }
         let role = message.mentions.roles.first();
@@ -66,7 +66,7 @@ function CreateASetting(message, options) {
                 Import.drive.files.create(creatParam, function(err, res){ next(null, null);});
             });
         }, function (err, res) {
-                BasicFunction.SendRightChannel(message, options, 'confirm', 'The \'' + param + '\' level has been correctly created.');
+                BasicFunction.SendRightChannel(message, options, 'confirm', 'The `' + param + '` level has been correctly created.');
         });
         return;
     }
@@ -77,7 +77,7 @@ function CreateASetting(message, options) {
     {
         if(param == '')
         {
-            BasicFunction.SendRightChannel(message, options, 'error', 'Missing value for the \'subject\' argument !');
+            BasicFunction.SendRightChannel(message, options, 'error', 'Missing value for the `subject` argument !');
             return;
         }
         let role = message.mentions.roles.first();
@@ -131,13 +131,13 @@ function CreateASetting(message, options) {
                 }
                 Import.drive.files.create(creatParam);
                 }
-                BasicFunction.SendRightChannel(message, options, 'confirm', 'The \'' + param + '\' subject has been correctly created.');
+                BasicFunction.SendRightChannel(message, options, 'confirm', 'The `' + param + '` subject has been correctly created.');
         });
 
         return;
     }
 
-    BasicFunction.SendRightChannel(message, options, 'error', 'Missing argument (\'subject\' or \'level\') !');
+    BasicFunction.SendRightChannel(message, options, 'error', 'You have to add a `subject` or a `level` argument to execute this command.');
 }
 
 /**
@@ -167,21 +167,21 @@ function ModifyASetting(message, options) {
         if (name != '' && name != '-1') {
             config = true;
             Import.GuildParameters.get(guild).level_name[param_n] = name;
-            BasicFunction.SendRightChannel(message, options, 'confirm', 'The level\'s name has been successfully set to \'' + name + '\'.');
+            BasicFunction.SendRightChannel(message, options, 'confirm', 'The level\'s name has been successfully set to `' + name + '`.');
         }
 
         let role = message.mentions.roles.first();
         if (role != undefined) {
             config = true;
             Import.GuildParameters.get(guild).role_level[param_n] = role.id;
-            BasicFunction.SendRightChannel(message, options, 'confirm', 'The level\'s role has been successfully set to \'' + role.name + '\'.');
+            BasicFunction.SendRightChannel(message, options, 'confirm', 'The level\'s role has been successfully set to `' + role.name + '`.');
         }
 
         BasicFunction.SaveSettings(guild);
         if (config)
             BasicFunction.SendRightChannel(message, options, 'confirm', 'The level\'s configuration is finished.');
         else
-            BasicFunction.SendRightChannel(message, options, 'error', 'You have to add a role or a \'name\' argument to execute this command.');
+            BasicFunction.SendRightChannel(message, options, 'error', 'You have to add a `role` or a `name` argument to execute this command.');
 
         return;
     }
@@ -200,14 +200,14 @@ function ModifyASetting(message, options) {
         if (name != '' && name != '-1') {
             Import.GuildParameters.get(guild).subject_name[param_n] = name;
             config = true;
-            BasicFunction.SendRightChannel(message, options, 'confirm', 'The subject\'s name has been successfully set to \'' + name + '\'.');
+            BasicFunction.SendRightChannel(message, options, 'confirm', 'The subject\'s name has been successfully set to `' + name + '`.');
         }
 
         let role = message.mentions.roles.first();
         if (role != undefined) {
             Import.GuildParameters.get(guild).role_subject[param_n] = role.id;
             config = true;
-            BasicFunction.SendRightChannel(message, options, 'confirm', 'The subject\'s role has been successfully set to \'' + role.name + '\'.');
+            BasicFunction.SendRightChannel(message, options, 'confirm', 'The subject\'s role has been successfully set to `' + role.name + '`.');
         }
         
         let channel = message.mentions.channels.first();
@@ -229,8 +229,7 @@ function ModifyASetting(message, options) {
         if (config)
             BasicFunction.SendRightChannel(message, options, 'confirm', 'The subject\'s configuration is finished.');
         else
-            BasicFunction.SendRightChannel(message, options, 'error', 'You have to add a role, a channel or a \'name\' argument to execute this command.');
-
+            BasicFunction.SendRightChannel(message, options, 'error', 'You have to add a `role`, a `channel` or a `name` argument to execute this command.');
         return;
     }
 
@@ -290,7 +289,7 @@ function ModifyASetting(message, options) {
         return;
     }
     else if (param_s != '-1') {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Wrong value for \'validation\' argument.');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Wrong value for the `validation` argument.');
         return;
     }
 
@@ -309,7 +308,7 @@ function ModifyASetting(message, options) {
         return;
     }
     else if (param_s != '-1') {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Wrong value for \'refuse\' argument.');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Wrong value for the `refuse` argument.');
         return;
     }
 
@@ -386,7 +385,7 @@ function HandleTheSettings(message, options) {
         switch(param)
         {
             case '': {
-                BasicFunction.SendRightChannel(message, options, 'error', 'Missing value for the argument \'view\' !');
+                BasicFunction.SendRightChannel(message, options, 'error', 'Missing value for the `view` argument !');
                 break;
             }
             case 'run': {
@@ -404,7 +403,7 @@ function HandleTheSettings(message, options) {
                 break;
             }
             default: {
-                BasicFunction.SendRightChannel(message, options, 'error', 'Unknow value for the argument \'view\' !');
+                BasicFunction.SendRightChannel(message, options, 'error', 'Unknown value for the `view` argument !');
             }
         }
     }
@@ -438,11 +437,11 @@ function ChangePrefix(message, options) {
     
     if(options.length < 2)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'The prefix\'s name is missing');
+        BasicFunction.SendRightChannel(message, options, 'error', 'The new prefix is missing');
         return;
     }
     Import.GuildParameters.get(guild).prefix = options[1];
-    BasicFunction.SendRightChannel(message, options, 'confirm', 'Your prefix has been succesfully changed into : ' + options[1]);
+    BasicFunction.SendRightChannel(message, options, 'confirm', 'Your prefix has been succesfully changed into : `' + options[1] + '`.');
     BasicFunction.SaveSettings(guild);
 }
 
@@ -498,7 +497,7 @@ function CallSettings(message, options) {
         }
 
         default: {
-            BasicFunction.SendRightChannel(message, options, 'error', 'Uknown command !');
+            BasicFunction.SendRightChannel(message, options, 'error', 'Unknown command !');
         }
     }
 }

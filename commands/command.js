@@ -65,7 +65,7 @@ function OnMessage(message) {
         return;
     }
 
-    BasicFunction.SendRightChannel(message, options, 'error', 'Unknow command !');
+    BasicFunction.SendRightChannel(message, options, 'error', 'Unknown command !');
 }
 
 module.exports = {

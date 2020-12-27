@@ -177,12 +177,12 @@ function SendCourse(message, options) {
     let type = BasicFunction.GetMessageParameter(options,'type');
 
     if( subject_n == -1) {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'subject\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `subject` argument !');
         return;
     }
 
     if (level_n == -1) {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'level\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `level` argument !');
         return;
     }
 
@@ -237,7 +237,7 @@ function SearchUnvalidateCourse(message, options) {
 
     if(subject_n == -1)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'subject\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `subject` argument !');
         return;
     }
 
@@ -296,7 +296,7 @@ function GetUnvalidate(message, options) {
     }
 
     if (CourseId < 0) {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -372,7 +372,7 @@ function ValidateCourse(message, options) {
 
     if(CourseId < 0)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -450,7 +450,7 @@ function RefuseCourse(message, options) {
 
     if(CourseId < 0)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -516,7 +516,7 @@ function UpdateCourse(message, options) {
 
     if(CourseId < 0)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -620,7 +620,7 @@ function DeleteCourse(message, options) {
 
     if(CourseId < 0)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -720,7 +720,7 @@ function CallProf(message, options) {
             break;
         }
         default: {
-            BasicFunction.SendRightChannel(message, options, 'error', 'Uknown command !');
+            BasicFunction.SendRightChannel(message, options, 'error', 'Unknown command !');
         }
     }
 }
