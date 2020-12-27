@@ -29,6 +29,10 @@ function OnConnectToDiscord() {
         BasicFunction.LoadSettings(id);
     });
 
+    Import.client.users.cache.forEach(function(userObj, user, collection) {
+        BasicFunction.LoadUserData(user);
+    });
+
     for (const iterator of Import.GuildParameters) {
         if (iterator[1].channel_subject.length != iterator[1].role_subject.length || iterator[1].channel_subject.length != iterator[1].subject_name.length){
             let fakeMessage = {

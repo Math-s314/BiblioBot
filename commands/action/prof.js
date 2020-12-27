@@ -413,6 +413,18 @@ function ValidateCourse(message, options) {
             ], function (err, resultTierce) {
                 BasicFunction.DeleteFile(resultTierce[0], [options[0], 'It\'s the old version of your file. With the validation of the new one, the old one has been deleted.'], function (err, res) {
                     BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully validated.');
+                    
+                    let fakeMessage = {
+                        author: Import.client.users.cache.get(resultBis[0][1])
+                    };
+                    if(fakeMessage.author != undefined){
+                        if(Import.UserParameters.get(resultBis[0][1]) == undefined) {
+                            Import.UserParameters.set(resultBis[0][1], new Import.UserVariable());
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username + '\nIf you want to disable this information messages send `info -disable` to the bot in DM', (msg) => {}, [], '', false);
+                        }
+                        else if(Import.UserParameters.get(resultBis[0][1]).WantDM)
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username, (msg) => {}, [], '', false);
+                    }
                 });
             });
         });
@@ -475,7 +487,7 @@ function RefuseCourse(message, options) {
             valide = false;
 
         async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'level'], cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'level', 'author'], cb); }
         ], function (err, resultBis) {
             var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
             if(!roleCondition) {
@@ -493,8 +505,20 @@ function RefuseCourse(message, options) {
                     {
                         BasicFunction.MoveFile(position, result[0], 'wait', guild, cb);
                     }
-
-                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.');
+                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.', (msg) => { cb(); });
+                },
+                function (cb) {
+                    let fakeMessage = {
+                        author: Import.client.users.cache.get(resultBis[0][2])
+                    };
+                    if(fakeMessage.author != undefined && message.author.id != resultBis[0][2]){
+                        if(Import.UserParameters.get(resultBis[0][2]) == undefined) {
+                            Import.UserParameters.set(resultBis[0][2], new Import.UserVariable());
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username + '\nIf you want to disable this information messages send `info -disable` to the bot in DM', (msg) => {}, [], '', false);
+                        }
+                        else if(Import.UserParameters.get(resultBis[0][2]).WantDM)
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username, (msg) => {}, [], '', false);
+                    }
                 }
             ]);
         })

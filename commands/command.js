@@ -12,6 +12,7 @@ const Prof = require('./action/prof.js');
 const Pupils = require('./action/pupils.js');
 const Settings = require('./action/settings.js');
 const BasicFunction = require('./action/basic.js');
+const DM = require('./action/userspecific');
 
 /*________________________________________*/
 
@@ -21,12 +22,25 @@ const BasicFunction = require('./action/basic.js');
  */
 function OnMessage(message) {
     const info = Import;
+
+    //For DM messages
+    if(message.guild == undefined || message.guild == null) {
+        let options = message.content.split('-');
+        for (let i = 0; i < options.length; i++) {
+            options[i] = options[i].replace(/\s/g, '');
+            options[i] = options[i].toLocaleLowerCase();
+        }
+        DM.command(message, options)
+        return;
+    }
     
-    if (message.guild == null || Import.GuildParameters.get(message.guild.id) == undefined || !message.content.startsWith(Import.GuildParameters.get(message.guild.id).prefix))
+    //If the message isn't for the bot
+    if (Import.GuildParameters.get(message.guild.id) == undefined || !message.content.startsWith(Import.GuildParameters.get(message.guild.id).prefix))
     {
         return;
     }
 
+    //For guild messages
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('OnMessage');
