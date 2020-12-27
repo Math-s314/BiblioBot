@@ -349,7 +349,8 @@ function MoveFile(originalPosition, link, position, guild, seriesCallback) {
                     Import.drive.files.delete({'auth' : Import.auth, 'fileId' : shortcutId});
 
                 Import.drive.files.update(updateParam, function (err, res) {
-                    seriesCallback(null, null); });
+                    seriesCallback(null, null); 
+                });
             }
         ]);
     });
@@ -452,6 +453,7 @@ function GetFileLinkById(CourseId, guild, scope = '', seriesCallback) {
                     if (res.data.files[i].appProperties.CourseId == param) {
                         resultLink = res.data.files[i].id;
                         callcall(null, false);
+                        return;
                     }
                 }
                 callcall(null, true);
@@ -465,10 +467,10 @@ function GetFileLinkById(CourseId, guild, scope = '', seriesCallback) {
  * @param {string} position 
  * @param {Discord.Snowflake} guild
  * @param {string} fields
- * @param {function(Error any any function(Error boolean))} callback
+ * @param {function(Error, any, any, function(Error, boolean))} pageCallback
  * @returns {boolean}
  */
-function GetAllFileInPosition(position, guild, fields, param, callback, seriesCallback) {
+function GetAllFileInPosition(position, guild, fields, param, pageCallback, seriesCallback) {
 
     var searchParam = {
         auth: Import.auth,
@@ -492,14 +494,12 @@ function GetAllFileInPosition(position, guild, fields, param, callback, seriesCa
             async.doWhilst(function (cb) {
                 Import.drive.files.list(searchParam, function (err, res) {
                     searchParam.pageToken = res.nextPageToken;
-                    callback(err, res, param, cb);
+                    pageCallback(err, res, param, cb);
                 });
             }, function (continuerParam, callou) {
                 callou(null, (searchParam.pageToken != undefined) && continuerParam);
-                return (searchParam.pageToken != undefined) && continuerParam;
             }, function (err, result) {
                 seriesCallback(null, result);
-                return;
             });
         }
         else
@@ -510,7 +510,7 @@ function GetAllFileInPosition(position, guild, fields, param, callback, seriesCa
             async.doWhilst(function (cb) {
                 Import.drive.files.list(searchParam, function(err, res) {
                     searchParam.pageToken = res.nextPageToken;
-                    async.timesSeries(res.data.files.length, function(i, callcall){
+                    async.timesSeries(res.data.files.length, function(i, cbTimes){
                         let getParam = {
                             auth : Import.auth,
                             fileId : res.data.files[i].shortcutDetails.targetId,
@@ -520,18 +520,16 @@ function GetAllFileInPosition(position, guild, fields, param, callback, seriesCa
 
                         Import.drive.files.get(getParam, function(err, target){
                             res.data.files[i] = target.data;
-                            callcall();
-                        })
+                            cbTimes();
+                        });
                     }, function(err, result){
-                        callback(err, res, param, cb);
+                        pageCallback(err, res, param, cb);
                     });
                 });
             }, function (continuerParam, callou) {
                 callou(null, (searchParam.pageToken != undefined) && continuerParam);
-                return (searchParam.pageToken != undefined) && continuerParam;
             }, function (err, result) {
                 seriesCallback(null, result);
-                return;
             });
         }
     });

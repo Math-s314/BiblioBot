@@ -275,6 +275,8 @@ function ModifyASetting(message, options) {
                     async.forEachOf(res.data.files, function (file, i, cb) {
                         if (file.appProperties.refuse == 'nr')
                             BasicFunction.MoveFile('wait', file.id, 'valide/' + file.appProperties.subject + '/' + file.appProperties.level, guild, cb);
+                        else
+                            cb();
                     }, function (err) {
                         callcall(null, true);
                     });
