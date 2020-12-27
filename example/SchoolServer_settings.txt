@@ -44,6 +44,9 @@ cs -level:term -@<Eleves>
 ms -prof -#<Prof Channel>
 ...
 
+/*Set your own prefix*/
+prefix -<newprefix>
+
 /*Verification*/
 hs -view:saved
 hs -view:run
