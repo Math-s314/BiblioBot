@@ -177,12 +177,12 @@ function SendCourse(message, options) {
     let type = BasicFunction.GetMessageParameter(options,'type');
 
     if( subject_n == -1) {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'subject\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `subject` argument !');
         return;
     }
 
     if (level_n == -1) {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'level\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `level` argument !');
         return;
     }
 
@@ -237,7 +237,7 @@ function SearchUnvalidateCourse(message, options) {
 
     if(subject_n == -1)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'subject\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `subject` argument !');
         return;
     }
 
@@ -296,7 +296,7 @@ function GetUnvalidate(message, options) {
     }
 
     if (CourseId < 0) {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -372,7 +372,7 @@ function ValidateCourse(message, options) {
 
     if(CourseId < 0)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -391,24 +391,21 @@ function ValidateCourse(message, options) {
         }
 
         async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'subject', cb); },
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'author', cb); },
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'refuse', cb); },
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'level', cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'author', 'refuse', 'level'], cb); }
         ], function (err, resultBis) {
-            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0])]);
+            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
 
-            if (!roleCondition || message.author.id == resultBis[1]) {
+            if (!roleCondition || message.author.id == resultBis[0][1]) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not allowed to do that.');
                 return;
             }
 
-            if (resultBis[2] == 'r') {
+            if (resultBis[0][2] == 'r') {
                 BasicFunction.SendRightChannel(message, options, 'error', 'This course has already been refused.');
                 return;
             }
 
-            var position = 'valide/' + resultBis[0] + '/' + resultBis[3];
+            var position = 'valide/' + resultBis[0][0] + '/' + resultBis[0][3];
 
             async.series([
                 function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, position, cb); },
@@ -416,6 +413,18 @@ function ValidateCourse(message, options) {
             ], function (err, resultTierce) {
                 BasicFunction.DeleteFile(resultTierce[0], [options[0], 'It\'s the old version of your file. With the validation of the new one, the old one has been deleted.'], function (err, res) {
                     BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully validated.');
+                    
+                    let fakeMessage = {
+                        author: Import.client.users.cache.get(resultBis[0][1])
+                    };
+                    if(fakeMessage.author != undefined){
+                        if(Import.UserParameters.get(resultBis[0][1]) == undefined) {
+                            Import.UserParameters.set(resultBis[0][1], new Import.UserVariable());
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username + '\nIf you want to disable this information messages send `info -disable` to the bot in DM', (msg) => {}, [], '', false);
+                        }
+                        else if(Import.UserParameters.get(resultBis[0][1]).WantDM)
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username, (msg) => {}, [], '', false);
+                    }
                 });
             });
         });
@@ -453,7 +462,7 @@ function RefuseCourse(message, options) {
 
     if(CourseId < 0)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -478,16 +487,15 @@ function RefuseCourse(message, options) {
             valide = false;
 
         async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'subject', cb); },
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'level', cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'level', 'author'], cb); }
         ], function (err, resultBis) {
-            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0])]);
+            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
             if(!roleCondition) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not allowed to do that');
                 return;
             }
 
-            var position = 'valide/' + resultBis[0] + '/' + resultBis[1];
+            var position = 'valide/' + resultBis[0][0] + '/' + resultBis[0][1];
             async.series([
                 function (cb) { BasicFunction.SetInfoProperty(result[0], 'refuse', 'r', cb); },
                 function (cb) {
@@ -497,8 +505,20 @@ function RefuseCourse(message, options) {
                     {
                         BasicFunction.MoveFile(position, result[0], 'wait', guild, cb);
                     }
-
-                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.');
+                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.', (msg) => {});
+                },
+                function (cb) {
+                    let fakeMessage = {
+                        author: Import.client.users.cache.get(resultBis[0][2])
+                    };
+                    if(fakeMessage.author != undefined && message.author.id != resultBis[0][2]){
+                        if(Import.UserParameters.get(resultBis[0][2]) == undefined) {
+                            Import.UserParameters.set(resultBis[0][2], new Import.UserVariable());
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username + '\nIf you want to disable this information messages send `info -disable` to the bot in DM', (msg) => {}, [], '', false);
+                        }
+                        else if(Import.UserParameters.get(resultBis[0][2]).WantDM)
+                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username, (msg) => {}, [], '', false);
+                    }
                 }
             ]);
         })
@@ -520,7 +540,7 @@ function UpdateCourse(message, options) {
 
     if(CourseId < 0)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -558,14 +578,9 @@ function UpdateCourse(message, options) {
                     call(null, 'nothing');
                 })
             },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'vera', call) },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'verb', call) },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'author', call) },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'subject', call) },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'level', call) },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, 'type', call) }
+            function (call) { BasicFunction.GetInfoProperty(FileLink, ['vera', 'verb', 'author', 'subject', 'level', 'type'], call) }
         ], function (err, resultatBis) {
-            var version = [resultatBis[1], resultatBis[2]];
+            var version = [resultatBis[1][0], resultatBis[1][1]];
 
             if (wait) {
                 version[1]++;
@@ -575,12 +590,12 @@ function UpdateCourse(message, options) {
                 version[1] = 0;
             }
 
-            if (resultatBis[3] != message.author.id) {
+            if (resultatBis[1][2] != message.author.id) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not the course\'s author');
                 return;
             }
 
-            var ParamInfo = [resultatBis[4], resultatBis[5], resultatBis[3], resultatBis[6], version[0], version[1], 'nr'];
+            var ParamInfo = [resultatBis[1][3], resultatBis[1][4], resultatBis[1][2], resultatBis[1][5], version[0], version[1], 'nr'];
 
             async.series([
                 function (cb) {
@@ -629,7 +644,7 @@ function DeleteCourse(message, options) {
 
     if(CourseId < 0)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -648,9 +663,9 @@ function DeleteCourse(message, options) {
         }
 
         async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], 'author', cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], ['author'], cb); }
         ], function (err, resultBis) {
-            if (resultBis[0] != message.author.id) {
+            if (resultBis[0][0] != message.author.id) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not the course\'s author');
                 return;
             }
@@ -729,7 +744,7 @@ function CallProf(message, options) {
             break;
         }
         default: {
-            BasicFunction.SendRightChannel(message, options, 'error', 'Uknown command !');
+            BasicFunction.SendRightChannel(message, options, 'error', 'Unknown command !');
         }
     }
 }

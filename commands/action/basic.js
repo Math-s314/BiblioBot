@@ -209,21 +209,33 @@ function GetMessageParameter(options, param) {
 /**
  * 
  * @param {string} link 
- * @param {string} param TODO : transform in string[]
+ * @param {string[]} param
  * @param {function(Error, any)} seriesCallback
  */
 function GetInfoProperty(link, param, seriesCallback) {
-    if (param == '')
+    if (param == [])
         return;
 
     let getParam = {
         auth: Import.auth,
         fileId: link,
-        fields: ''
+        fields: 'appProperties('
     };
-    getParam.fields = ("appProperties(" + new String(param) + ")");
 
-    Import.drive.files.get(getParam, function (err, res) { seriesCallback(err, res.data.appProperties[param]); });
+    for (let i = 0; i < param.length; i++) {
+        if(i != param.length - 1)
+            getParam.fields += param[i] + ',';
+        else
+            getParam.fields += param[i] + ')';
+    }
+
+    Import.drive.files.get(getParam, function (err, res) { 
+        let ret = [];
+        param.forEach(element => {
+            ret.push(res.data.appProperties[element]);
+        });
+        seriesCallback(err, ret); 
+    });
 }
 
 /**
@@ -337,7 +349,8 @@ function MoveFile(originalPosition, link, position, guild, seriesCallback) {
                     Import.drive.files.delete({'auth' : Import.auth, 'fileId' : shortcutId});
 
                 Import.drive.files.update(updateParam, function (err, res) {
-                    seriesCallback(null, null); });
+                    seriesCallback(null, null); 
+                });
             }
         ]);
     });
@@ -364,7 +377,7 @@ function DeleteFile(link, reason, seriesCallback) {
     }
 
     async.series([
-        function (call) { GetInfoProperty(link, 'author', call); }
+        function (call) { GetInfoProperty(link, ['author'], call); }
     ], function (err, result) {
         var name = '';
         let shortcut = '';
@@ -395,9 +408,9 @@ function DeleteFile(link, reason, seriesCallback) {
             },
             function (call) {
                 let fakeMessage = {
-                    author: Import.client.users.cache.get(result[0])
+                    author: Import.client.users.cache.get(result[0][0])
                 };
-                SendRightChannel(fakeMessage, reason, 'result', 'Your file will be deleted, I send it to you. Reason :\n' + reason[1], (msg) => { 
+                SendRightChannel(fakeMessage, reason, 'info', 'Your file will be deleted, I send it to you. Reason :\n' + reason[1], (msg) => { 
                     fs.unlink(name, (err) => {
                         call();
                     });
@@ -440,6 +453,7 @@ function GetFileLinkById(CourseId, guild, scope = '', seriesCallback) {
                     if (res.data.files[i].appProperties.CourseId == param) {
                         resultLink = res.data.files[i].id;
                         callcall(null, false);
+                        return;
                     }
                 }
                 callcall(null, true);
@@ -453,10 +467,10 @@ function GetFileLinkById(CourseId, guild, scope = '', seriesCallback) {
  * @param {string} position 
  * @param {Discord.Snowflake} guild
  * @param {string} fields
- * @param {function(Error any any function(Error boolean))} callback
+ * @param {function(Error, any, any, function(Error, boolean))} pageCallback
  * @returns {boolean}
  */
-function GetAllFileInPosition(position, guild, fields, param, callback, seriesCallback) {
+function GetAllFileInPosition(position, guild, fields, param, pageCallback, seriesCallback) {
 
     var searchParam = {
         auth: Import.auth,
@@ -480,14 +494,12 @@ function GetAllFileInPosition(position, guild, fields, param, callback, seriesCa
             async.doWhilst(function (cb) {
                 Import.drive.files.list(searchParam, function (err, res) {
                     searchParam.pageToken = res.nextPageToken;
-                    callback(err, res, param, cb);
+                    pageCallback(err, res, param, cb);
                 });
             }, function (continuerParam, callou) {
                 callou(null, (searchParam.pageToken != undefined) && continuerParam);
-                return (searchParam.pageToken != undefined) && continuerParam;
             }, function (err, result) {
                 seriesCallback(null, result);
-                return;
             });
         }
         else
@@ -498,7 +510,7 @@ function GetAllFileInPosition(position, guild, fields, param, callback, seriesCa
             async.doWhilst(function (cb) {
                 Import.drive.files.list(searchParam, function(err, res) {
                     searchParam.pageToken = res.nextPageToken;
-                    async.timesSeries(res.data.files.length, function(i, callcall){
+                    async.timesSeries(res.data.files.length, function(i, cbTimes){
                         let getParam = {
                             auth : Import.auth,
                             fileId : res.data.files[i].shortcutDetails.targetId,
@@ -508,18 +520,16 @@ function GetAllFileInPosition(position, guild, fields, param, callback, seriesCa
 
                         Import.drive.files.get(getParam, function(err, target){
                             res.data.files[i] = target.data;
-                            callcall();
-                        })
+                            cbTimes();
+                        });
                     }, function(err, result){
-                        callback(err, res, param, cb);
+                        pageCallback(err, res, param, cb);
                     });
                 });
             }, function (continuerParam, callou) {
                 callou(null, (searchParam.pageToken != undefined) && continuerParam);
-                return (searchParam.pageToken != undefined) && continuerParam;
             }, function (err, result) {
                 seriesCallback(null, result);
-                return;
             });
         }
     });
@@ -586,6 +596,24 @@ function LoadSettings(guild) {
     }
 }
 
+/**
+ * @param {Discord.Snowflake} user
+ */
+function SaveUserData(user) {
+    const data = JSON.stringify(Import.UserParameters.get(user), null, 4);
+    fs.writeFileSync("usersfiles/" + user + '.jsonset', data, { encoding: 'utf-8' });
+}
+
+/**
+ * @param {Discord.Snowflake} user
+ */
+function LoadUserData(user) {
+    if (fs.existsSync("usersfiles/" + user + '.jsonset')) {
+        const data = fs.readFileSync("usersfiles/" + user + '.jsonset', 'utf-8');
+        Import.UserParameters.set(user, JSON.parse(data));
+    }
+}
+
 module.exports = {
     name : 'basic_function',
     
@@ -607,5 +635,7 @@ module.exports = {
     FindFolderLink: FindFolderLink, //AsyncOKOK
 
     SaveSettings : SaveSettings,
-    LoadSettings : LoadSettings
+    LoadSettings : LoadSettings,
+    SaveUserData : SaveUserData,
+    LoadUserData : LoadUserData
 }

@@ -32,7 +32,7 @@ function GetACourse(message, options) {
 
     if(CourseId < 0)
     {
-        BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'ID\' argument !');
+        BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
 
@@ -111,14 +111,14 @@ function SearchInBiblio(message, options, subject_np) {
         }
 
         if (level_n == -1) {
-            BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'level\' argument (you don\'t get any level role) !');
+            BasicFunction.SendRightChannel(message, options, 'error', 'Missing `level` argument (you don\'t get any level role) !');
             return;
         }
     }
 
     if (subject_n == -1) {
         if (subject_np == -1) {
-            BasicFunction.SendRightChannel(message, options, 'error', 'Missing \'subject\' argument (you are in a global channel) !');
+            BasicFunction.SendRightChannel(message, options, 'error', 'Missing `subject` argument (you are in a global channel) !');
             return;
         }
         else
@@ -202,7 +202,7 @@ function CallPupils(message, options, subject_n) {
         }
 
         default: {
-            BasicFunction.SendRightChannel(message, options, 'error', 'Uknown command !');
+            BasicFunction.SendRightChannel(message, options, 'error', 'Unknown command !');
         }
     }
 }

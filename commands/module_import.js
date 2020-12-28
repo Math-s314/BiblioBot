@@ -122,6 +122,31 @@ var GuildLogStream = new Discord.Collection();
 
 /*________________________________________*/
 
+/**
+ * @class
+ * @description Class which stores user specific data used by the bot
+ */
+class UserVariable{
+    /**
+     * @param {boolean} DM 
+     */
+    constructor(DM = true) {
+        this.WantDM = DM;
+    }
+
+    /**
+     * @type {boolean}
+     */
+    WantDM;
+};
+
+/**
+ * @type {Discord.Collection<Discord.Snowflake, UserVariable>}
+ */
+var UserParameters = new Discord.Collection();
+
+/*________________________________________*/
+
 module.exports = {
     name :'import',
 
@@ -131,6 +156,9 @@ module.exports = {
     SettingsVariable : SettingsVariable,
     GuildParameters: GuildParameters,
     GuildLogStream: GuildLogStream,
+
+    UserVariable: UserVariable,
+    UserParameters: UserParameters,
 
     drive: drive,
     auth: jwtClient,
