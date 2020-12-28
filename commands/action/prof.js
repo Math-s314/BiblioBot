@@ -505,7 +505,7 @@ function RefuseCourse(message, options) {
                     {
                         BasicFunction.MoveFile(position, result[0], 'wait', guild, cb);
                     }
-                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.', (msg) => { cb(); });
+                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.', (msg) => {});
                 },
                 function (cb) {
                     let fakeMessage = {

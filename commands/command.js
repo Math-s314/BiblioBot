@@ -21,7 +21,9 @@ const DM = require('./action/userspecific');
  * @param {Discord.Message} message 
  */
 function OnMessage(message) {
-    const info = Import;
+    //To not answer its own messages
+    if(message.author.id == Import.client.user.id)
+        return;
 
     //For DM messages
     if(message.guild == undefined || message.guild == null) {
@@ -30,15 +32,16 @@ function OnMessage(message) {
             options[i] = options[i].replace(/\s/g, '');
             options[i] = options[i].toLocaleLowerCase();
         }
-        DM.command(message, options)
+
+        if(DM.commandList.includes(options[0]))
+            DM.command(message, options);
+        
         return;
     }
     
     //If the message isn't for the bot
     if (Import.GuildParameters.get(message.guild.id) == undefined || !message.content.startsWith(Import.GuildParameters.get(message.guild.id).prefix))
-    {
         return;
-    }
 
     //For guild messages
     const guild = message.guild.id;
