@@ -345,9 +345,9 @@ function MoveFile(originalPosition, link, position, guild, seriesCallback) {
             function(cb) {
                 if (position.startsWith('valide'))
                     updateParam.requestBody.appProperties.shortcutValide = shortcutId;
-                else
+                else if(shortcutId != '')
                     Import.drive.files.delete({'auth' : Import.auth, 'fileId' : shortcutId});
-
+                
                 Import.drive.files.update(updateParam, function (err, res) {
                     seriesCallback(null, null); 
                 });

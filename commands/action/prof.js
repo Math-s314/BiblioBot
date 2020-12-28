@@ -447,8 +447,8 @@ function RefuseCourse(message, options) {
 
     if (scope == '' || scope == '-1' || scope == undefined)
         scope = 'wait';
-
-    var valide = (scope != 'wait');
+    
+    let valide = scope.startsWith('valide');
 
     if (!(Import.GuildParameters.get(guild).IsThereAValidation)) {
         BasicFunction.SendRightChannel(message, options, 'error', 'The validation system isn\'t activated. you can\'t execute this command.');
@@ -480,14 +480,10 @@ function RefuseCourse(message, options) {
             BasicFunction.SendRightChannel(message, options, 'error', 'The scope isn\'t correct.');
             return;
         }
-
-        if (valide && result[1] != '')
-            valide = true;
-        else
-            valide = false;
+        let NewVersionInWait = (valide && result[1] != '');
 
         async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'level', 'author'], cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'level', 'author', 'refuse'], cb); }
         ], function (err, resultBis) {
             var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
             if(!roleCondition) {
@@ -495,16 +491,21 @@ function RefuseCourse(message, options) {
                 return;
             }
 
+            if(resultBis[0][3] == 'r')
+            {
+                BasicFunction.SendRightChannel(message, options, 'error', 'This file has been already refused.');
+                return;
+            }
+
             var position = 'valide/' + resultBis[0][0] + '/' + resultBis[0][1];
             async.series([
                 function (cb) { BasicFunction.SetInfoProperty(result[0], 'refuse', 'r', cb); },
                 function (cb) {
-                    if (valide)
+                    if (NewVersionInWait)
                         BasicFunction.DeleteFile(result[0], [options[0], 'It\'s just the old version of your file. It has been refused'], cb);
-                    else
-                    {
+                    else if(valide)
                         BasicFunction.MoveFile(position, result[0], 'wait', guild, cb);
-                    }
+                    
                     BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.', (msg) => {});
                 },
                 function (cb) {
