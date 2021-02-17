@@ -100,7 +100,7 @@ function SendRightChannel(message, options, type, content, callback = (msg) => {
         color: 0x000000,
         title: '',
         author: {
-            name: message.author.username,
+            name: (ValidGuild) ? message.member.nickname : message.author.username,
             icon_url: message.author.avatarURL()
         },
         description: content,

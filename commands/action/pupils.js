@@ -147,17 +147,17 @@ function SearchInBiblio(message, options, subject_np) {
             BasicFunction.GetAllFileInPosition(position, guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author))', searchParam, function (err, res, param, callcall) {
                 res.data.files.forEach(function (iterator, i, array) {
                     if (parseInt(iterator.appProperties.subject) == param.subject && parseInt(iterator.appProperties.level) == param.level){
-                        const author = message.guild.members.cache.get(iterator.appProperties.author).user;
-                        
+                        const member = message.guild.members.cache.get(iterator.appProperties.author);
+
                         let contentField = 'ID : ' + iterator.appProperties.CourseId + '\n';
                         contentField += 'Type : ' + iterator.appProperties.type + '\n';
                         contentField += 'Version : ' + iterator.appProperties.vera + '.' + iterator.appProperties.verb + '\n';
                         contentField += 'Author : ';
 
-                        if (author == undefined)
+                        if (member == undefined)
                             contentField += iterator.appProperties.author;
                         else
-                            contentField += author.username;
+                            contentField += member.nickname;
                         result.push([iterator.name, contentField]);
                     }
                 });
