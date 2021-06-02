@@ -491,6 +491,20 @@ function HelpCommand(message, options) {
                 break;
             }
             case 'help': {
+                embed.title += 's about `help`';
+                embed.description = 'Display the basic help or the help associated with the specified command/subcommand. Complete command : \n `help [-<command_name>] [-<subcommand_name>]`';
+                embed.fields = [
+                    {
+                        name:'`<command_name> `',
+                        value: 'Indicate the command for which you need some help.',
+                        inline: false
+                    },
+                    {
+                        name:'`<subcommand_name> `',
+                        value: 'Indicate the subcommand for which you need some help.',
+                        inline: false
+                    }
+                ];
                 break;
             }
 
