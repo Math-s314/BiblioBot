@@ -255,8 +255,10 @@ function SearchUnvalidateCourse(message, options) {
 
                         if (member == undefined)
                             contentField += iterator.appProperties.author;
-                        else
+                        else if(member.nickname != null)
                             contentField += member.nickname;
+                        else
+                            contentField += member.user.username;
 
                         if(iterator.appProperties.refuse != 'nr')
                             contentField += '\nREFUSED';

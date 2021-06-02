@@ -156,8 +156,11 @@ function SearchInBiblio(message, options, subject_np) {
 
                         if (member == undefined)
                             contentField += iterator.appProperties.author;
-                        else
+                        else if(member.nickname != null)
                             contentField += member.nickname;
+                        else
+                            contentField += member.user.username;
+                        
                         result.push([iterator.name, contentField]);
                     }
                 });
