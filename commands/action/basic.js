@@ -469,40 +469,40 @@ function GetFileLinkById(CourseId, guild, scope = '', seriesCallback) {
  * @param {string} fields
  * @param {function(Error, any, any, function(Error, boolean))} pageCallback
  * @returns {boolean}
+ * @APICall 1 + pages(>0)
  */
 function GetAllFileInPosition(position, guild, fields, param, pageCallback, seriesCallback) {
 
+    //Basic parameters for search commands
     var searchParam = {
         auth: Import.auth,
-        q: "mimeType != 'application/vnd.google-apps.folder'",
-        fields: 'nextPageToken',
+        q: "mimeType != 'application/vnd.google-apps.folder'",//Search real files, not folders
+        fields: 'nextPageToken, ' + fields,//To be able to continue
         spaces: 'drive',
         pageToken: null,
         pageSize: 1000,
         corpora : 'user'
     };
 
+    //Results
     async.series([
         function (cb) { FindFolderLink(position, guild, cb); }
     ], function (err, result) {
         searchParam.q += (" and '" + result[0] + "' in parents");
 
-        if(position != 'valide')
-        {
-            searchParam.fields += (', ' + fields);
-
-            async.doWhilst(function (cb) {
-                Import.drive.files.list(searchParam, function (err, res) {
-                    searchParam.pageToken = res.nextPageToken;
-                    pageCallback(err, res, param, cb);
-                });
-            }, function (continuerParam, callou) {
-                callou(null, (searchParam.pageToken != undefined) && continuerParam);
-            }, function (err, result) {
-                seriesCallback(null, result);
+        //While boucle
+        async.doWhilst(function (cb) {
+            Import.drive.files.list(searchParam, function (err, res) {
+                searchParam.pageToken = res.nextPageToken;//To be able to get next page
+                pageCallback(err, res, param, cb);//To allows caller to take data
             });
-        }
-        else
+        }, function (continuerParam, callou) {
+            callou(null, (searchParam.pageToken != undefined) && continuerParam);//Use caller decision
+        }, function (err, result) {
+            seriesCallback(null, result);
+        });
+        /*
+        else //if(position != 'valide')
         {
             searchParam.q += " and mimeType = 'application/vnd.google-apps.shortcut'"
             searchParam.fields += ", files(shortcutDetails(targetId))"
@@ -532,6 +532,7 @@ function GetAllFileInPosition(position, guild, fields, param, pageCallback, seri
                 seriesCallback(null, result);
             });
         }
+        */
     });
 }
 

@@ -240,13 +240,16 @@ function SendCourse(message, options) {
  * @param {string[]} options
  * @description Get all unvalidate course (include refused) for the given subject
  * @argument subject->the selected subject
+ * @APICall 1 + pages(>0)
  */
 function SearchUnvalidateCourse(message, options) {
+    //Guild's log
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('SearchUnvalidateCourse');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
+    //Find and check message's arguments
     let subject_n = Import.GuildParameters.get(guild).subject_name.indexOf(BasicFunction.GetMessageParameter(options, 'subject'));
     let unvalidate = [['Title', 'Value']];
 
@@ -256,18 +259,23 @@ function SearchUnvalidateCourse(message, options) {
         return;
     }
 
+    //Results
     async.series([
+        //List obtention
         function (call) {
             BasicFunction.GetAllFileInPosition('wait', guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author, refuse))', subject_n, function (err, res, param, callcall) {
                 res.data.files.forEach(function (iterator, i, array) {
+                    //Check the subject
                     if (parseInt(iterator.appProperties.subject) == param) {
                         const member = message.guild.members.cache.get(iterator.appProperties.author);
                         
+                        //Basic information
                         let contentField = 'ID : ' + iterator.appProperties.CourseId + '\n';
                         contentField += 'Type : ' + iterator.appProperties.type + '\n';
                         contentField += 'Version : ' + iterator.appProperties.vera + '.' + iterator.appProperties.verb + '\n';
                         contentField += 'Author : ';
 
+                        //Author information management
                         if (member == undefined)
                             contentField += iterator.appProperties.author;
                         else if(member.nickname != null)
@@ -278,15 +286,17 @@ function SearchUnvalidateCourse(message, options) {
                         if(iterator.appProperties.refuse != 'nr')
                             contentField += '\nREFUSED';
                         
+                        //Add result to the list
                         unvalidate.push([iterator.name, contentField]);
                     }
                 });
-                callcall(null, true);
+                callcall(null, true);//Want all pages, doesn't handle errors (so null is sent)
             }, call);
         },
+        //Send message
         function (call) {
             unvalidate.shift();
-            if(unvalidate.length == 0)
+            if(unvalidate.length == 0)//No result
                 BasicFunction.SendRightChannel(message, options, 'result', 'Good job guys ! There\'s nothing more to do.', (msg) => { call(); }, unvalidate);
             else
                 BasicFunction.SendRightChannel(message, options, 'result', 'Here are the file(s) which wait for a validation (in the wanted subject). It includes refused file(s).', (msg) => { call(); }, unvalidate);
