@@ -29,13 +29,16 @@ const profCommand = ['send', 'search_unvalidate', 'validate', 'refuse', 'get_unv
  * @param {Discord.Message} message
  * @param {function(Error, any)} seriesCallback
  * @description Create a new file in guild's 'wait' folder (and then Move it if validation is desactivated)
+ * @APICall 2
  */
 function AddCourse(attachement, param, CourseId, message, options, seriesCallback) {
+    //Guild's log
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('AddCourse :');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
+    //MIME Type analyse
     let name = attachement.name.split('.')[0];
     let type = attachement.name.split('.')[1];
     let MIMEtype = '';
@@ -95,6 +98,7 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
         }
     }
 
+    //Prepare metatdata specific for Biblio application
     var metaApp = {
         'displayName': name,
         'CourseId': CourseId,
@@ -107,22 +111,25 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
         'refuse': param[6],
         'shortcutValide': ''
     }; 
+
+    //Prepare genenral metadata (need to add just parents)
     var fileMetadata = {
         'name': attachement.name,
         'appProperties': metaApp,
         'parents': []
     };
 
-    let WaitLink = '';
-    let FileLink = '';
+    let PositionLink = '';
+    let bValidation = Import.GuildParameters.get(guild).IsThereAValidation;
     async.series([
+        //Determine the folder's link in which we will create the file
         function (cb) {
-            BasicFunction.FindFolderLink('wait', guild, (err, res) => {
-                WaitLink = res;
+            BasicFunction.FindFolderLink(( (bValidation) ? 'wait' : 'valide' ), guild, (err, res) => {
+                PositionLink = res;
                 cb();
             });
         },
-        //function (cb) { BasicFunction.FindFolderLink('', guild, cb); },
+        //Download file from Discord
         function (cb) {
             var file = fs.createWriteStream(attachement.name);
             https.get(attachement.url, function (response) {
@@ -130,8 +137,9 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
                 file.on('finish', function () { file.close(cb); });
             });
         },
+        //Create file on the drive
         function (cb) {
-            fileMetadata.parents = [WaitLink];
+            fileMetadata.parents = [PositionLink];
             var media = {
                 mimeType: MIMEtype,
                 body: fs.createReadStream(attachement.name)
@@ -144,10 +152,10 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
                 fields: 'id, appProperties(CourseId, displayName)',
             }, function (err, file) {
                 fs.unlinkSync(attachement.name);
-                FileLink = file.data.id;
                 BasicFunction.SendRightChannel(message, options, 'confirm', 'Your file is in the drive. \n ID : ' + file.data.appProperties.CourseId, (msg) => { cb(); });
             });
         },
+        /*
         function (cb) {
             if (!(Import.GuildParameters.get(guild).IsThereAValidation)) {
                 BasicFunction.MoveFile('wait', FileLink, 'valide/' + metaApp.subject + '/' + metaApp.level, guild, cb);
@@ -156,25 +164,32 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
                 seriesCallback();
             }
         },
+        */
         function (cb) { seriesCallback(); cb(); }
     ]);
-}//AsyncOKOK
+}
 
 /**
  * 
  * @param {Discord.Message} message
  * @param {string[]} options 
+ * @APICall 2
  */
 function SendCourse(message, options) {
+    //Guild's log
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('SendCourse');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
-    let nextCourseId = 0;
+    //Find and check message's arguments
     let level_n = Import.GuildParameters.get(guild).level_name.indexOf(BasicFunction.GetMessageParameter(options, 'level'));
     let subject_n = Import.GuildParameters.get(guild).subject_name.indexOf(BasicFunction.GetMessageParameter(options,'subject'));
     let type = BasicFunction.GetMessageParameter(options,'type');
+
+    if(type == '-1'){
+        type = 'course';
+    }
 
     if( subject_n == -1) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Missing `subject` argument !');
@@ -186,6 +201,8 @@ function SendCourse(message, options) {
         return;
     }
 
+    //Find new ID (and update lost ID)
+    let nextCourseId = 0;
     if(Import.GuildParameters.get(guild).Idlost.length > 0)
     {
         nextCourseId = Import.GuildParameters.get(guild).Idlost[0];
@@ -198,16 +215,14 @@ function SendCourse(message, options) {
     }
     BasicFunction.SaveSettings(guild);
 
-    if(type == '-1')
-        type = 'course';
-
+    //Check message's attachment
     let link = message.attachments.first();
-    if (link == undefined)
-    {
+    if (link == undefined) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Attachment is missing !');
         return;
     }
 
+    //Add file to the drive
     async.series([
         function (cb) { AddCourse(link, [new String(subject_n), new String(level_n), message.author.id, type, '1', '0', 'nr'], nextCourseId, message, options, cb); },
         function (cb) {
