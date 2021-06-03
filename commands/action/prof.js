@@ -390,20 +390,23 @@ function GetUnvalidate(message, options) {
  * @param {Discord.Message} message
  * @param {string[]} options 
  * @description Delete old file in guild's 'valide' folder(if file exists), and move new file into guild's 'valide' folder
+ * @APICall 12 max
  */
 function ValidateCourse(message, options) {
+    //Guild's log
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('ValidateCourse');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
-    let CourseId = parseInt(BasicFunction.GetMessageParameter(options, 'id'));
-
+    //Check the validation system
     if (!(Import.GuildParameters.get(guild).IsThereAValidation)) {
         BasicFunction.SendRightChannel(message, options, 'error', 'The validation system isn\'t activated. you can\'t execute this command.');
         return;
     }
 
+    //Find and check message's arguments
+    let CourseId = parseInt(BasicFunction.GetMessageParameter(options, 'id'));
     if(CourseId < 0)
     {
         BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
@@ -416,9 +419,11 @@ function ValidateCourse(message, options) {
         return;
     }
 
+    //Results
     async.series([
         function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, 'wait', cb);}
     ], function (err, result) {
+        //"Dynamic" ID verification
         if (result[0] == '') {
             BasicFunction.SendRightChannel(message, options, 'error', 'This course has already been validated.');
             return;
@@ -427,24 +432,25 @@ function ValidateCourse(message, options) {
         async.series([
             function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'author', 'refuse', 'level'], cb); }
         ], function (err, resultBis) {
-            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
+            //Check permissions
+            const roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
 
             if (!roleCondition || message.author.id == resultBis[0][1]) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not allowed to do that.');
                 return;
             }
-
             if (resultBis[0][2] == 'r') {
                 BasicFunction.SendRightChannel(message, options, 'error', 'This course has already been refused.');
                 return;
             }
 
-            var position = 'valide/' + resultBis[0][0] + '/' + resultBis[0][3];
-
             async.series([
-                function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, position, cb); },
-                function (cb) { BasicFunction.MoveFile('wait',result[0], position, guild, cb); }
+                //Check if an older version of the file already exist in the valide folder
+                function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, 'valide', cb); },
+                //Move concretely the validated file
+                function (cb) { BasicFunction.MoveFile('wait',result[0], 'valide', guild, cb); }
             ], function (err, resultTierce) {
+                //Delete older file version
                 BasicFunction.DeleteFile(resultTierce[0], [options[0], 'It\'s the old version of your file. With the validation of the new one, the old one has been deleted.'], function (err, res) {
                     BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully validated.');
                     

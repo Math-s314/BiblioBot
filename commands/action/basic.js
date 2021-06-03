@@ -211,11 +211,13 @@ function GetMessageParameter(options, param) {
  * @param {string} link 
  * @param {string[]} param
  * @param {function(Error, any)} seriesCallback
+ * @APICall 1
  */
 function GetInfoProperty(link, param, seriesCallback) {
     if (param == [])
         return;
 
+    //Formate param list to the needed format for drive query
     let getParam = {
         auth: Import.auth,
         fileId: link,
@@ -229,6 +231,7 @@ function GetInfoProperty(link, param, seriesCallback) {
             getParam.fields += param[i] + ')';
     }
 
+    //Return the list of all needed param
     Import.drive.files.get(getParam, function (err, res) { 
         let ret = [];
         param.forEach(element => {
@@ -267,13 +270,15 @@ function SetInfoProperty(link, param, newValue, seriesCallback) {
 
 /**
  * 
- * @param {string} originalPosition
+ * @param {string} originalPosition //TODO: delete this parameter = is useless
  * @param {string} link
  * @param {string} position
  * @param {Discord.Snowflake} guild
  * @param {function(Error, any)} seriesCallback
+ * @APICall 2
  */
 function MoveFile(originalPosition, link, position, guild, seriesCallback) {
+    //Guild's log
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('MoveFile');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
@@ -281,73 +286,24 @@ function MoveFile(originalPosition, link, position, guild, seriesCallback) {
     if (link == '')
         return;
 
+    //Basic parameters for the update
     var updateParam = {
         auth: Import.auth,
         fileId: link,
         addParents: '',
         removeParents:'',
-        enforceSingleParent: true,
-        requestBody: {
-            appProperties : {
-                shortcutValide : ''
-            }
-        }
+        enforceSingleParent: true
     };
 
     async.series([
-        function (cb) { FindFolderLink(originalPosition, guild, cb); },
-        function (cb) { FindFolderLink(position, guild, cb); },
-        function (cb) {
-            if (position.startsWith('valide'))
-                FindFolderLink('valide', guild, cb);
-            else
-                cb();
-        }
+        //Find necessary folder
+        function (cb) { FindFolderLink(position, guild, cb); }
     ], function (err, result) {
-        updateParam.removeParents = result[0];
-        updateParam.addParents = result[1];
-        let shortcutId = '';
+        updateParam.addParents = result[0];
 
         async.series([
-            function(cb){
-                if (position.startsWith('valide'))
-                {
-                    shortcutMetadata = {
-                        'parents' : [result[2]],
-                        'mimeType': 'application/vnd.google-apps.shortcut',
-                        'shortcutDetails': {
-                          'targetId': link
-                        }
-                    };
-
-                    Import.drive.files.create({
-                        'requestBody': shortcutMetadata,
-                        'fields': 'id',
-                        'auth' : Import.auth
-                      }, function(err, shortcut) {
-                        shortcutId = shortcut.data.id;
-                        cb();
-                      }
-                    );
-                }
-                else
-                {
-                    Import.drive.files.get({
-                        'fileId' : link,
-                        'auth' : Import.auth,
-                        'fields' : 'appProperties(shortcutValide)'
-                    }, function(err, file){
-                        shortcutId = file.data.appProperties.shortcutValide;
-                        cb();
-                    });
-                }
-            },
-            function(cb) {
-                if (position.startsWith('valide'))
-                    updateParam.requestBody.appProperties.shortcutValide = shortcutId;
-                else if(shortcutId != '')
-                    Import.drive.files.delete({'auth' : Import.auth, 'fileId' : shortcutId});
-                
+            //Update file properties to change the folder
+            function(cb) {                
                 Import.drive.files.update(updateParam, function (err, res) {
                     seriesCallback(null, null); 
                 });
@@ -360,29 +316,32 @@ function MoveFile(originalPosition, link, position, guild, seriesCallback) {
  * 
  * @param {string} link
  * @param {[string, string]} reason The first element must be the command name and the second the reason of this deletion.
+ * @APICall 5
  */
 function DeleteFile(link, reason, seriesCallback) {
     /*Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('DeleteFile');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));*/
 
+    //Check the given link
     if (link == '') {
         seriesCallback(null, null);
         return;
     }
 
+    //Basic parameter for the API
     var deleteParam = {
         auth: Import.auth,
         fileId: link
     }
 
     async.series([
+        //Get author to send him a notification
         function (call) { GetInfoProperty(link, ['author'], call); }
     ], function (err, result) {
-        var name = '';
-        let shortcut = '';
-
+        let name = '';
         async.series([
+            //Get name to save the file
             function (call) {
                 Import.drive.files.get({
                     auth: Import.auth,
@@ -394,6 +353,7 @@ function DeleteFile(link, reason, seriesCallback) {
                     call();
                 });
             },
+            //Download file's content
             function (call) {
                 Import.drive.files.get({
                     auth: Import.auth,
@@ -406,6 +366,7 @@ function DeleteFile(link, reason, seriesCallback) {
                     call();
                 });
             },
+            //Send notification to the author with his file
             function (call) {
                 let fakeMessage = {
                     author: Import.client.users.cache.get(result[0][0])
@@ -416,14 +377,9 @@ function DeleteFile(link, reason, seriesCallback) {
                     });
                 }, [], name, false);
             },
+            //Delete file (put into the trash and then empty the trash)
             function (cb) {
                 Import.drive.files.delete(deleteParam, function (err, res) { cb(null, null); });
-            },
-            function (cb) {
-                if(shortcut != '')
-                    Import.drive.files.delete({'auth' : Import.auth, 'fileId' : shortcut}, function (err, res) { cb(null, null); });
-                else
-                    cb(null, null);
             },
             function (cb) {
                 Import.drive.files.emptyTrash({ auth: Import.auth }, function (err, res) { cb(null, null); });
@@ -490,10 +446,12 @@ function GetAllFileInPosition(position, guild, fields, param, pageCallback, seri
         function (cb) { FindFolderLink(position, guild, cb); }
     ], function (err, result) {
         searchParam.q += (" and '" + result[0] + "' in parents");
+        console.log(searchParam);
 
         //While boucle
         async.doWhilst(function (cb) {
             Import.drive.files.list(searchParam, function (err, res) {
+                console.log(res.data);
                 searchParam.pageToken = res.nextPageToken;//To be able to get next page
                 pageCallback(err, res, param, cb);//To allows caller to take data
             });
