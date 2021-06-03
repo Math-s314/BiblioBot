@@ -440,6 +440,7 @@ function DeleteFile(link, reason, seriesCallback) {
  * @param {Discord.Snowflake} guild 
  * @param {string} scope
  * @returns {string}
+ * @APICall 2
  */
 function GetFileLinkById(CourseId, guild, scope = '', seriesCallback) {
     if(CourseId < 0)

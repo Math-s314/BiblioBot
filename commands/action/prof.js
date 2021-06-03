@@ -308,13 +308,16 @@ function SearchUnvalidateCourse(message, options) {
  * 
  * @param {Discord.Message} message 
  * @param {string[]} options
+ * @APICall 4
  */
 function GetUnvalidate(message, options) {
+    //Guild's log
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('GetUnvalidate');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
+    //Find and check message's arguments
     let CourseId = parseInt(BasicFunction.GetMessageParameter(options, 'id'));
 
     if (!(Import.GuildParameters.get(guild).IsThereAValidation)) {
@@ -332,27 +335,30 @@ function GetUnvalidate(message, options) {
         return;
     }
 
+    //Results
     async.series([
         function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, 'wait', cb); }
     ], function (err, result) {
+        //"Dynamic" ID verification
         if (result[0] == '') {
             BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
             return;
         }
 
-        var name = '';
+        let name = '';
         async.series([
+            //Get file name (to send a file with the right name to Discord)
             function (call) {
                 Import.drive.files.get({
                     auth: Import.auth,
                     fileId: result[0],
-                    fields: 'name, webContentLink'
+                    fields: 'name'
                 }, function (err, res) {
                     name = res.data.name;
-                    link = res.data.webContentLink;
                     call();
                 });
             },
+            //Get file's content, and save it on the disk
             function (call) {
                 Import.drive.files.get({
                     auth: Import.auth,
@@ -365,6 +371,7 @@ function GetUnvalidate(message, options) {
                     call();
                 });
             },
+            //Send file to Discord and delete local copy
             function (call) {
                 BasicFunction.SendRightChannel(message, options, 'result', 'Here is your file (ID = ' + CourseId + ').', (msg) => { 
                     fs.unlink(name, function(err){
