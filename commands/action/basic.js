@@ -346,10 +346,9 @@ function DeleteFile(link, reason, seriesCallback) {
                 Import.drive.files.get({
                     auth: Import.auth,
                     fileId: link,
-                    fields: 'name, appProperties(shortcutValide)'
+                    fields: 'name'
                 }, function (err, res) {
                     name = res.data.name;
-                    shortcut = res.data.appProperties.shortcutValide;
                     call();
                 });
             },
@@ -394,42 +393,50 @@ function DeleteFile(link, reason, seriesCallback) {
  * 
  * @param {number} CourseId 
  * @param {Discord.Snowflake} guild 
- * @param {string} scope
- * @returns {string}
- * @APICall 2
+ * @param {function(Error, any)} seriesCallback
+ * @APICall 1
  */
-function GetFileLinkById(CourseId, guild, scope = '', seriesCallback) {
+function GetFileLinkById(CourseId, guild, seriesCallback) {
     if(CourseId < 0)
         return '';
-    var resultLink = '';
+    
+    var resultFiles = {
+        unvalidate : null,
+        validate : null
+    };
 
     async.series([
         function (cb) {
-            GetAllFileInPosition(scope, guild, 'files(id, appProperties(CourseId))', CourseId, function (err, res, param, callcall) {
+            GetAllFileInPosition('', guild, 'files(id, appProperties(CourseId, permission))', CourseId, function (err, res, param, callcall) {
                 for (let i = 0; i < res.data.files.length; i++) {
                     if (res.data.files[i].appProperties.CourseId == param) {
-                        resultLink = res.data.files[i].id;
+                        resultFiles[(res.data.files[i].appProperties.permission == 'v') ? "validate" : "unvalidate"] = {
+                            link : res.data.files[i].id,
+                            permission : res.data.files[i].appProperties.permission
+                        };
+
+                        if (resultFiles.validate != null && resultFiles.unvalidate != null) {
                         callcall(null, false);
                         return;
                     }
                 }
+                }
                 callcall(null, true);
             }, cb);
         }
-    ], function (err, result) { seriesCallback(null, resultLink);});
+    ], function (err, result) { seriesCallback(null, resultFiles);});
 }
 
 /** 
  * 
- * @param {string} position 
+ * @param {string} position //Useless
  * @param {Discord.Snowflake} guild
  * @param {string} fields
  * @param {function(Error, any, any, function(Error, boolean))} pageCallback
  * @returns {boolean}
- * @APICall 1 + pages(>0)
+ * @APICall 1 (if less files than 1000)
  */
 function GetAllFileInPosition(position, guild, fields, param, pageCallback, seriesCallback) {
-
     //Basic parameters for search commands
     var searchParam = {
         auth: Import.auth,
@@ -440,15 +447,9 @@ function GetAllFileInPosition(position, guild, fields, param, pageCallback, seri
         pageSize: 1000,
         corpora : 'user'
     };
-
-    //Results
-    async.series([
-        function (cb) { FindFolderLink(position, guild, cb); }
-    ], function (err, result) {
-        searchParam.q += (" and '" + result[0] + "' in parents");
         console.log(searchParam);
 
-        //While boucle
+    //While boucle, gives results
         async.doWhilst(function (cb) {
             Import.drive.files.list(searchParam, function (err, res) {
                 console.log(res.data);
@@ -460,45 +461,13 @@ function GetAllFileInPosition(position, guild, fields, param, pageCallback, seri
         }, function (err, result) {
             seriesCallback(null, result);
         });
-        /*
-        else //if(position != 'valide')
-        {
-            searchParam.q += " and mimeType = 'application/vnd.google-apps.shortcut'"
-            searchParam.fields += ", files(shortcutDetails(targetId))"
-
-            async.doWhilst(function (cb) {
-                Import.drive.files.list(searchParam, function(err, res) {
-                    searchParam.pageToken = res.nextPageToken;
-                    async.timesSeries(res.data.files.length, function(i, cbTimes){
-                        let getParam = {
-                            auth : Import.auth,
-                            fileId : res.data.files[i].shortcutDetails.targetId,
-                            fields : ''
-                        }
-                        getParam.fields = fields.substring('files('.length, (fields.length - 1));
-
-                        Import.drive.files.get(getParam, function(err, target){
-                            res.data.files[i] = target.data;
-                            cbTimes();
-                        });
-                    }, function(err, result){
-                        pageCallback(err, res, param, cb);
-                    });
-                });
-            }, function (continuerParam, callou) {
-                callou(null, (searchParam.pageToken != undefined) && continuerParam);
-            }, function (err, result) {
-                seriesCallback(null, result);
-            });
-        }
-        */
-    });
 }
 
 /**
  * 
  * @param {string} folder
  * @param {Discord.Snowflake} guild
+ * @todo Delete this function : is now useless
  */
 function FindFolderLink(folder, guild, seriesCallback) {
     let parts = folder.split('/');

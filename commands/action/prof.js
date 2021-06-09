@@ -23,13 +23,13 @@ const profCommand = ['send', 'search_unvalidate', 'validate', 'refuse', 'get_unv
 /**
  * 
  * @param {Discord.MessageAttachment} attachement
- * @param {string[]} param 
+ * @param {string[]} param ['subject', 'level', 'author', 'type', 'vera', 'verb']
  * @param {string[]} options 
  * @param {number} CourseId 
  * @param {Discord.Message} message
  * @param {function(Error, any)} seriesCallback
  * @description Create a new file in guild's 'wait' folder (and then Move it if validation is desactivated)
- * @APICall 2
+ * @APICall 1
  */
 function AddCourse(attachement, param, CourseId, message, options, seriesCallback) {
     //Guild's log
@@ -111,23 +111,14 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
         'permission': (Import.GuildParameters.get(guild).IsThereAValidation) ? 'nr' : 'v'
     }; 
 
-    //Prepare genenral metadata (need to add just parents)
+    //Prepare genenral metadata
     var fileMetadata = {
         'name': attachement.name,
         'appProperties': metaApp,
-        'parents': []
+        'parents': [Import.GuildParameters.get(guild).url]
     };
 
-    let PositionLink = '';
-    let bValidation = Import.GuildParameters.get(guild).IsThereAValidation;
     async.series([
-        //Determine the folder's link in which we will create the file
-        function (cb) {
-            BasicFunction.FindFolderLink(( (bValidation) ? 'wait' : 'valide' ), guild, (err, res) => {
-                PositionLink = res;
-                cb();
-            });
-        },
         //Download file from Discord
         function (cb) {
             var file = fs.createWriteStream(attachement.name);
@@ -138,11 +129,12 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
         },
         //Create file on the drive
         function (cb) {
-            fileMetadata.parents = [PositionLink];
             var media = {
                 mimeType: MIMEtype,
                 body: fs.createReadStream(attachement.name)
             };
+
+            console.log(fileMetadata);
 
             Import.drive.files.create({
                 auth: Import.auth,
@@ -153,26 +145,15 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
                 fs.unlinkSync(attachement.name);
                 BasicFunction.SendRightChannel(message, options, 'confirm', 'Your file is in the drive. \n ID : ' + file.data.appProperties.CourseId, (msg) => { cb(); });
             });
-        },
-        /*
-        function (cb) {
-            if (!(Import.GuildParameters.get(guild).IsThereAValidation)) {
-                BasicFunction.MoveFile('wait', FileLink, 'valide/' + metaApp.subject + '/' + metaApp.level, guild, cb);
-            }
-            else {
-                seriesCallback();
-            }
-        },
-        */
-        function (cb) { seriesCallback(); cb(); }
-    ]);
+        }
+    ], function (err, result) { seriesCallback(); });
 }
 
 /**
  * 
  * @param {Discord.Message} message
  * @param {string[]} options 
- * @APICall 2
+ * @APICall 1
  */
 function SendCourse(message, options) {
     //Guild's log
@@ -223,7 +204,9 @@ function SendCourse(message, options) {
 
     //Add file to the drive
     async.series([
-        function (cb) { AddCourse(link, [new String(subject_n), new String(level_n), message.author.id, type, '1', '0', 'nr'], nextCourseId, message, options, cb); },
+        //Add file to the drive
+        function (cb) { AddCourse(link, [new String(subject_n), new String(level_n), message.author.id, type, '1', '0'], nextCourseId, message, options, cb); },
+        //Send notification to mark success
         function (cb) {
             if (Import.GuildParameters.get(guild).IsThereAValidation)
                 BasicFunction.SendRightChannel(message, options, 'confirm', 'Your file has been added to the server\'s librairie and wait for a validation :wink:', (msg) => { cb(); });
@@ -569,100 +552,90 @@ function RefuseCourse(message, options) {
  * 
  * @param {Discord.Message} message
  * @param {string[]} options 
+ * @APICall 8+ (max 13)
  */
 function UpdateCourse(message, options) {
+    //Guild's log
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('UpdateCourse');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
+    //Find and check message's arguments
     let CourseId = parseInt(BasicFunction.GetMessageParameter(options, 'id'));
-
     if(CourseId < 0)
     {
         BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
-
     if(!BasicFunction.DoesIdExist(CourseId, guild))
     {
         BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
         return;
     }
 
+    //Check message's attachment
     let url = message.attachments.first();
     if (url == undefined) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Attachment is missing !');
         return;
     }
 
+    let filesAccess = null;
+    let paramInfos = null;
+    let wait = true;
+
     async.series([
-        function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, 'wait', cb); }
-    ], function (err, resultat) {
-        var FileLink = resultat[0];
-        var wait = (FileLink != '');
-        var FileLinkValide = '';
-
-        async.series([
-            function (call) {
-                async.series([
-                    function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, 'valide', cb); }
-                ], function (err, resultatBis) {
-                    FileLinkValide = resultatBis[0];
-                    if (wait) {
-                        call(null, 'nothing');
-                        return;
-                    }
-
-                    FileLink = resultatBis[0];
-                    call(null, 'nothing');
-                })
-            },
-            function (call) { BasicFunction.GetInfoProperty(FileLink, ['vera', 'verb', 'author', 'subject', 'level', 'type'], call) }
-        ], function (err, resultatBis) {
-            var version = [resultatBis[1][0], resultatBis[1][1]];
-
-            if (wait) {
-                version[1]++;
-            }
-            else {
-                version[0]++;
-                version[1] = 0;
-            }
-
-            if (resultatBis[1][2] != message.author.id) {
+        //Find files (valide and unvalide) link
+        function (cb) {
+            BasicFunction.GetFileLinkById(CourseId, guild, (err, access) => {
+                filesAccess = access;
+                wait = (access.unvalidate != null);
+                cb(null, null);
+            });
+        },
+        //Get some info property about the existing file 
+        function (cb) {
+            BasicFunction.GetInfoProperty(filesAccess[(wait) ? 'unvalidate' : 'validate'].link, ['vera', 'verb', 'author', 'subject', 'level', 'type'], (err, info) => {
+                paramInfos = info;
+                cb(null, null);
+            }); 
+        },
+        //Delete the unvalide file if it exists (just check before the message's author)
+        function (cb) {
+            if (paramInfos[2] != message.author.id) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not the course\'s author');
+                cb("You can't bro ;)", null);
                 return;
             }
 
-            var ParamInfo = [resultatBis[1][3], resultatBis[1][4], resultatBis[1][2], resultatBis[1][5], version[0], version[1], 'nr'];
+            if (wait)
+                BasicFunction.DeleteFile(filesAccess.unvalidate.link, [options[0], 'It\'s just an old version of your file. The new one is in the drive instead of this one.'], cb);
+            else
+                cb(null, null);
+        },
+        //Delete the unvalide file if it exists and if the validation system is disabled
+        function (cb) {
+            if (!(Import.GuildParameters.get(guild).IsThereAValidation) && filesAccess.validate != null)
+                BasicFunction.DeleteFile(filesAccess.validate.link, [options[0], 'It\'s just an old version of your file. The new one is in the drive instead of this one.'], cb);
+            else
+                cb(null, null);
+        },
+        //Add course to the drive (change version number depending on the wait boolean)
+        function (cb) {
+            var version = (wait) ? [paramInfos[0], paramInfos[1] + 1] : [paramInfos[0] + 1, '0'];
+            var newParamInfos = [paramInfos[3], paramInfos[4], paramInfos[2], paramInfos[5], version[0], version[1]];
 
-            async.series([
-                function (cb) {
-                    if (wait)
-                        BasicFunction.DeleteFile(FileLink, [options[0], 'It\'s just an old version of your file. The new one is in the drive instead of this one.'], cb);
-                    else
-                        cb();
-                },
-                function (cb) {
-                    if (!(Import.GuildParameters.get(guild).IsThereAValidation)) {
-                        BasicFunction.DeleteFile(FileLinkValide, [options[0], 'It\'s just an old version of your file. The new one is in the drive instead of this one.'], cb);
-                    }
-                    else
-                        cb();
-                },
-                function (cb) {
-                    AddCourse(message.attachments.first(1)[0], ParamInfo, CourseId, message, options, cb);
-                },
-                function (cb) {
-                    if (Import.GuildParameters.get(guild).IsThereAValidation)
-                        BasicFunction.SendRightChannel(message, options, 'confirm', 'Your file has been successfully updated and wait for a validation :wink: ', (msg) => { cb(); });
-                    else
-                        BasicFunction.SendRightChannel(message, options, 'confirm', 'Your file has been successfully updated :wink: ', (msg) => { cb(); });
-                } 
-            ]);
-        });
-    });
+            AddCourse(message.attachments.first(1)[0], newParamInfos, CourseId, message, options, cb);
+        },
+        //Send confirmation to the user
+        function (cb) {
+            if (Import.GuildParameters.get(guild).IsThereAValidation)
+                BasicFunction.SendRightChannel(message, options, 'confirm', 'Your file has been successfully updated and wait for a validation :wink: ', (msg) => { cb(null, null); });
+            else
+                BasicFunction.SendRightChannel(message, options, 'confirm', 'Your file has been successfully updated :wink: ', (msg) => { cb(null, null); });
+        } 
+    ]);
 }
 
 /**
