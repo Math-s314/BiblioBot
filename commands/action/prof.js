@@ -108,8 +108,7 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
         'type': param[3],
         'vera': param[4], 
         'verb': param[5], 
-        'refuse': param[6],
-        'shortcutValide': ''
+        'permission': (Import.GuildParameters.get(guild).IsThereAValidation) ? 'nr' : 'v'
     }; 
 
     //Prepare genenral metadata (need to add just parents)
@@ -263,7 +262,7 @@ function SearchUnvalidateCourse(message, options) {
     async.series([
         //List obtention
         function (call) {
-            BasicFunction.GetAllFileInPosition('wait', guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author, refuse))', subject_n, function (err, res, param, callcall) {
+            BasicFunction.GetAllFileInPosition('wait', guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author, permission))', subject_n, function (err, res, param, callcall) {
                 res.data.files.forEach(function (iterator, i, array) {
                     //Check the subject
                     if (parseInt(iterator.appProperties.subject) == param) {
@@ -283,7 +282,7 @@ function SearchUnvalidateCourse(message, options) {
                         else
                             contentField += member.user.username;
 
-                        if(iterator.appProperties.refuse != 'nr')
+                        if(iterator.appProperties.permission != 'nr')
                             contentField += '\nREFUSED';
                         
                         //Add result to the list
@@ -430,7 +429,7 @@ function ValidateCourse(message, options) {
         }
 
         async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'author', 'refuse', 'level'], cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'author', 'permission', 'level'], cb); }
         ], function (err, resultBis) {
             //Check permissions
             const roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
@@ -523,7 +522,7 @@ function RefuseCourse(message, options) {
         let NewVersionInWait = (valide && result[1] != '');
 
         async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'level', 'author', 'refuse'], cb); }
+            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'level', 'author', 'permission'], cb); }
         ], function (err, resultBis) {
             var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
             if(!roleCondition) {
@@ -539,7 +538,7 @@ function RefuseCourse(message, options) {
 
             var position = 'valide/' + resultBis[0][0] + '/' + resultBis[0][1];
             async.series([
-                function (cb) { BasicFunction.SetInfoProperty(result[0], 'refuse', 'r', cb); },
+                function (cb) { BasicFunction.SetInfoProperty(result[0], 'permission', 'r', cb); },
                 function (cb) {
                     if (NewVersionInWait)
                         BasicFunction.DeleteFile(result[0], [options[0], 'It\'s just the old version of your file. It has been refused'], cb);

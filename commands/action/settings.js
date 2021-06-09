@@ -271,9 +271,9 @@ function ModifyASetting(message, options) {
         Import.GuildParameters.get(guild).IsThereAValidation = false;
         async.series([
             function (call) {
-                BasicFunction.GetAllFileInPosition('wait', guild, 'files(id, name, appProperties(subject, level, refuse))', null, function (err, res, param, callcall) {
+                BasicFunction.GetAllFileInPosition('wait', guild, 'files(id, name, appProperties(subject, level, permission))', null, function (err, res, param, callcall) {
                     async.forEachOf(res.data.files, function (file, i, cb) {
-                        if (file.appProperties.refuse == 'nr')
+                        if (file.appProperties.permission == 'nr')
                             BasicFunction.MoveFile('wait', file.id, 'valide/' + file.appProperties.subject + '/' + file.appProperties.level, guild, cb);
                         else
                             cb();
