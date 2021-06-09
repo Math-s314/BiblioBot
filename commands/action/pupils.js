@@ -90,6 +90,7 @@ function GetACourse(message, options) {
  * @param {Discord.Message} message 
  * @param {string[]} options
  * @param {number} subject_n
+ * @APICall 1
  */
 function SearchInBiblio(message, options, subject_np) {
     const guild = message.guild.id;
@@ -97,10 +98,12 @@ function SearchInBiblio(message, options, subject_np) {
     Import.GuildLogStream.get(guild).write('SearchInBiblio');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
+    //Find and check message's parameters
     let subject_n = Import.GuildParameters.get(guild).subject_name.indexOf(BasicFunction.GetMessageParameter(options, 'subject'));
     let level_n = Import.GuildParameters.get(guild).level_name.indexOf(BasicFunction.GetMessageParameter(options, 'level'));
     let type = BasicFunction.GetMessageParameter(options, 'type');
 
+    //In case of missing arguments, check channel and roles to find the missing informations
     if(level_n == -1)
     {
         for (const iterator of message.member.roles.cache) 
@@ -115,7 +118,6 @@ function SearchInBiblio(message, options, subject_np) {
             return;
         }
     }
-
     if (subject_n == -1) {
         if (subject_np == -1) {
             BasicFunction.SendRightChannel(message, options, 'error', 'Missing `subject` argument (you are in a global channel) !');
@@ -129,31 +131,38 @@ function SearchInBiblio(message, options, subject_np) {
         return;
     }
 
+    //Prepare message
     options[0] += ' files->' + Import.GuildParameters.get(guild).subject_name[subject_n] + '->' + Import.GuildParameters.get(guild).level_name[level_n];
     if (type != '-1')
         options[0] += '->' + type;
 
+    //Parameters which will be send to the pageCB
     var searchParam = {
         'level': level_n,
         'type': type,
-        'subject': subject_n,
-        'guild' : guild
+        'subject': subject_n
     };
-    var position = 'valide/' + subject_n + '/' + level_n;
+
+    //Prepare result array
     var result = [['Title', 'Value']];
 
+     //Results
     async.series([
-        function (call) {
-            BasicFunction.GetAllFileInPosition(position, guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author))', searchParam, function (err, res, param, callcall) {
+        //List obtention
+        function (cb) {
+            BasicFunction.GetAllFileInPosition('', guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author, permission))', searchParam, function (err, res, param, nextCB) {
                 res.data.files.forEach(function (iterator, i, array) {
-                    if (parseInt(iterator.appProperties.subject) == param.subject && parseInt(iterator.appProperties.level) == param.level){
+                    //Check parameters and permissions
+                    if (iterator.appProperties.permission == 'v' && parseInt(iterator.appProperties.subject) == param.subject && parseInt(iterator.appProperties.level) == param.level && (param.type == "-1" || param.type == iterator.appProperties.type)){
                         const member = message.guild.members.cache.get(iterator.appProperties.author);
 
+                        //Basic information
                         let contentField = 'ID : ' + iterator.appProperties.CourseId + '\n';
                         contentField += 'Type : ' + iterator.appProperties.type + '\n';
                         contentField += 'Version : ' + iterator.appProperties.vera + '.' + iterator.appProperties.verb + '\n';
                         contentField += 'Author : ';
 
+                        //Author information management
                         if (member == undefined)
                             contentField += iterator.appProperties.author;
                         else if(member.nickname != null)
@@ -161,18 +170,20 @@ function SearchInBiblio(message, options, subject_np) {
                         else
                             contentField += member.user.username;
                         
+                        //Add result to the list
                         result.push([iterator.name, contentField]);
                     }
                 });
-                callcall(null, true);
-            }, call);
+                nextCB(null, true);//Want all pages, doesn't handle errors (so null is sent)
+            }, cb);
         },
-        function (call) {
+        //Send message
+        function (cb) {
             result.shift();
             if (result.length == 0)
-                BasicFunction.SendRightChannel(message, options, 'result', 'Unbelievable ! There\'s nothing... ', (msg) => { call(); }, result);
+                BasicFunction.SendRightChannel(message, options, 'result', 'Unbelievable ! There\'s nothing... ', (msg) => { cb(); }, result);
             else
-                BasicFunction.SendRightChannel(message, options, 'result', 'Here are your search results.', (msg) => { call(); }, result);
+                BasicFunction.SendRightChannel(message, options, 'result', 'Here are your search results.', (msg) => { cb(); }, result);
         }
     ]);
 }

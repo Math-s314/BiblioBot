@@ -222,7 +222,7 @@ function SendCourse(message, options) {
  * @param {string[]} options
  * @description Get all unvalidate course (include refused) for the given subject
  * @argument subject->the selected subject
- * @APICall 1 + pages(>0)
+ * @APICall 1
  */
 function SearchUnvalidateCourse(message, options) {
     //Guild's log
@@ -244,11 +244,11 @@ function SearchUnvalidateCourse(message, options) {
     //Results
     async.series([
         //List obtention
-        function (call) {
-            BasicFunction.GetAllFileInPosition('wait', guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author, permission))', subject_n, function (err, res, param, callcall) {
+        function (cb) {
+            BasicFunction.GetAllFileInPosition('', guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author, permission))', subject_n, function (err, res, param, nextCB) {
                 res.data.files.forEach(function (iterator, i, array) {
-                    //Check the subject
-                    if (parseInt(iterator.appProperties.subject) == param) {
+                    //Check the subject and the permission
+                    if (parseInt(iterator.appProperties.subject) == param && iterator.appProperties.permission != 'v') {
                         const member = message.guild.members.cache.get(iterator.appProperties.author);
                         
                         //Basic information
@@ -265,23 +265,23 @@ function SearchUnvalidateCourse(message, options) {
                         else
                             contentField += member.user.username;
 
-                        if(iterator.appProperties.permission != 'nr')
+                        if(iterator.appProperties.permission == 'r')
                             contentField += '\nREFUSED';
                         
                         //Add result to the list
                         unvalidate.push([iterator.name, contentField]);
                     }
                 });
-                callcall(null, true);//Want all pages, doesn't handle errors (so null is sent)
-            }, call);
+                nextCB(null, true);//Want all pages, doesn't handle errors (so null is sent)
+            }, cb);
         },
         //Send message
-        function (call) {
+        function (cb) {
             unvalidate.shift();
             if(unvalidate.length == 0)//No result
-                BasicFunction.SendRightChannel(message, options, 'result', 'Good job guys ! There\'s nothing more to do.', (msg) => { call(); }, unvalidate);
+                BasicFunction.SendRightChannel(message, options, 'result', 'Good job guys ! There\'s nothing more to do.', (msg) => { cb(); }, unvalidate);
             else
-                BasicFunction.SendRightChannel(message, options, 'result', 'Here are the file(s) which wait for a validation (in the wanted subject). It includes refused file(s).', (msg) => { call(); }, unvalidate);
+                BasicFunction.SendRightChannel(message, options, 'result', 'Here are the file(s) which wait for a validation (in the wanted subject). It includes refused file(s).', (msg) => { cb(); }, unvalidate);
         }
     ]);
 }
