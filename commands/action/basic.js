@@ -405,26 +405,22 @@ function GetFileLinkById(CourseId, guild, seriesCallback) {
         validate : null
     };
 
-    async.series([
-        function (cb) {
-            GetAllFileInPosition('', guild, 'files(id, appProperties(CourseId, permission))', CourseId, function (err, res, param, callcall) {
-                for (let i = 0; i < res.data.files.length; i++) {
-                    if (res.data.files[i].appProperties.CourseId == param) {
-                        resultFiles[(res.data.files[i].appProperties.permission == 'v') ? "validate" : "unvalidate"] = {
-                            link : res.data.files[i].id,
-                            permission : res.data.files[i].appProperties.permission
-                        };
+    GetAllFileInPosition('', guild, 'files(id, appProperties(CourseId, permission))', CourseId, function (err, res, param, callcall) {
+        for (let i = 0; i < res.data.files.length; i++) {
+            if (res.data.files[i].appProperties.CourseId == param) {
+                resultFiles[(res.data.files[i].appProperties.permission == 'v') ? "validate" : "unvalidate"] = {
+                    link : res.data.files[i].id,
+                    permission : res.data.files[i].appProperties.permission
+                };
 
-                        if (resultFiles.validate != null && resultFiles.unvalidate != null) {
-                        callcall(null, false);
-                        return;
-                    }
+                if (resultFiles.validate != null && resultFiles.unvalidate != null) {
+                    callcall(null, false);
+                    return;
                 }
-                }
-                callcall(null, true);
-            }, cb);
+            }
         }
-    ], function (err, result) { seriesCallback(null, resultFiles);});
+        callcall(null, true);
+    }, (err, result) => { seriesCallback(null, resultFiles); });
 }
 
 /** 
@@ -447,20 +443,20 @@ function GetAllFileInPosition(position, guild, fields, param, pageCallback, seri
         pageSize: 1000,
         corpora : 'user'
     };
-        console.log(searchParam);
+    console.log(searchParam);
 
     //While boucle, gives results
-        async.doWhilst(function (cb) {
-            Import.drive.files.list(searchParam, function (err, res) {
-                console.log(res.data);
-                searchParam.pageToken = res.nextPageToken;//To be able to get next page
-                pageCallback(err, res, param, cb);//To allows caller to take data
-            });
-        }, function (continuerParam, callou) {
-            callou(null, (searchParam.pageToken != undefined) && continuerParam);//Use caller decision
-        }, function (err, result) {
-            seriesCallback(null, result);
+    async.doWhilst(function (cb) {
+        Import.drive.files.list(searchParam, function (err, res) {
+            console.log(res.data.files);
+            searchParam.pageToken = res.nextPageToken;//To be able to get next page
+            pageCallback(err, res, param, cb);//To allows caller to take data
         });
+    }, function (continuerParam, callou) {
+        callou(null, (searchParam.pageToken != undefined) && continuerParam);//Use caller decision
+    }, function (err, result) {
+        seriesCallback(null, result);
+    });
 }
 
 /**

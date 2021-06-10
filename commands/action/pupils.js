@@ -21,6 +21,7 @@ const pupilsCommand = ['search', 'get', 's', 'g'];
  * 
  * @param {Discord.Message} message 
  * @param {string[]} options
+ * @APICall 3
  */
 function GetACourse(message, options) {
     const guild = message.guild.id;
@@ -28,61 +29,67 @@ function GetACourse(message, options) {
     Import.GuildLogStream.get(guild).write('GetACourse');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
+    //Find and check message's arguments
     let CourseId = parseInt(BasicFunction.GetMessageParameter(options, 'id'));
-
-    if(CourseId < 0)
-    {
+    if(CourseId < 0) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
-
-    if(!BasicFunction.DoesIdExist(CourseId, guild))
-    {
+    if(!BasicFunction.DoesIdExist(CourseId, guild)) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
         return;
     }
 
-    async.series([
-        function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, 'valide', cb); }
-    ], function (err, result) {
-        if (result[0] == '') {
-            BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
-            return;
-        }
+    //Results
+    let filesAccess = null;
+    let name = '';
 
-        var name = '';
-        async.series([
-            function (call) {
-                Import.drive.files.get({
-                    auth: Import.auth,
-                    fileId: result[0],
-                    fields: 'name'
-                }, function (err, res) {
-                    name = res.data.name;
-                    call();
-                });
-            },
-            function (call) {
-                Import.drive.files.get({
-                    auth: Import.auth,
-                    fileId: result[0],
-                    alt: 'media'
-                }, {
-                    responseType: 'arraybuffer'
-                }, function (err, res) {
-                    fs.writeFileSync(name, new Uint8Array(res.data));
-                    call();
-                });              
-            },
-            function (call) {
-                BasicFunction.SendRightChannel(message, options, 'result', 'Here is your file (ID = ' + CourseId + ').', (msg) => {
-                    fs.unlink(name, function(err){
-                        call();
-                    });
-                }, [], name);
+    async.series([
+        //Find file's link
+        function (cb) { 
+            BasicFunction.GetFileLinkById(CourseId, guild, (err, res) => {
+                filesAccess = res;
+                cb(null, null);
+            }); 
+        },
+        //Get file name (to send a file with the right name to Discord)
+        function (cb) {
+            //"Dynamic" ID verification
+            if (filesAccess.validate == null) {
+                BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
+                cb('wrong_id', null);
+                return;
             }
-        ]);
-    });
+
+            Import.drive.files.get({
+                auth: Import.auth,
+                fileId: filesAccess.validate.link,
+                fields: 'name'
+            }, function (err, res) {
+                name = res.data.name;
+                cb(null, null);
+            });
+        },
+        //Get file's content, and save it on the disk
+        function (cb) {
+            Import.drive.files.get({
+                auth: Import.auth,
+                fileId: filesAccess.validate.link,
+                alt: 'media'
+            }, {
+                responseType: 'arraybuffer'
+            }, function (err, res) {
+                fs.writeFileSync(name, new Uint8Array(res.data));
+                cb(null, null);
+            });
+        },
+        //Send file to Discord and delete local copy
+        function (cb) {
+            BasicFunction.SendRightChannel(message, options, 'result', 'Here is your file (ID = ' + CourseId + ').', (msg) => { 
+                fs.unlink(name, function(err){ cb(null, null); });
+            } , [], name);
+        }
+    ], function(err, result) {});
 }
 
 /**

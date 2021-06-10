@@ -290,7 +290,7 @@ function SearchUnvalidateCourse(message, options) {
  * 
  * @param {Discord.Message} message 
  * @param {string[]} options
- * @APICall 4
+ * @APICall 3
  */
 function GetUnvalidate(message, options) {
     //Guild's log
@@ -299,70 +299,73 @@ function GetUnvalidate(message, options) {
     Import.GuildLogStream.get(guild).write('GetUnvalidate');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
-    //Find and check message's arguments
-    let CourseId = parseInt(BasicFunction.GetMessageParameter(options, 'id'));
-
+    //Check validation system
     if (!(Import.GuildParameters.get(guild).IsThereAValidation)) {
         BasicFunction.SendRightChannel(message, options, 'error', 'The validation system isn\'t activated. you can\'t execute this command.');
         return;
     }
 
+    //Find and check message's arguments
+    let CourseId = parseInt(BasicFunction.GetMessageParameter(options, 'id'));
     if (CourseId < 0) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
-
     if (!BasicFunction.DoesIdExist(CourseId, guild)) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
         return;
     }
 
     //Results
+    let filesAccess = null;
+    let name = '';
+
     async.series([
-        function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, 'wait', cb); }
-    ], function (err, result) {
+        //Find file's link
+        function (cb) { 
+            BasicFunction.GetFileLinkById(CourseId, guild, (err, res) => {
+                filesAccess = res;
+                cb(null, null);
+            }); 
+        },
+        //Get file name (to send a file with the right name to Discord)
+        function (cb) {
         //"Dynamic" ID verification
-        if (result[0] == '') {
+            if (filesAccess.unvalidate == null) {
             BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
+                cb('wrong_id', null);
             return;
         }
 
-        let name = '';
-        async.series([
-            //Get file name (to send a file with the right name to Discord)
-            function (call) {
                 Import.drive.files.get({
                     auth: Import.auth,
-                    fileId: result[0],
+                fileId: filesAccess.unvalidate.link,
                     fields: 'name'
                 }, function (err, res) {
                     name = res.data.name;
-                    call();
+                cb(null, null);
                 });
             },
             //Get file's content, and save it on the disk
-            function (call) {
+        function (cb) {
                 Import.drive.files.get({
                     auth: Import.auth,
-                    fileId: result[0],
+                fileId: filesAccess.unvalidate.link,
                     alt: 'media'
                 }, {
                     responseType: 'arraybuffer'
                 }, function (err, res) {
                     fs.writeFileSync(name, new Uint8Array(res.data));
-                    call();
+                cb(null, null);
                 });
             },
             //Send file to Discord and delete local copy
-            function (call) {
+        function (cb) {
                 BasicFunction.SendRightChannel(message, options, 'result', 'Here is your file (ID = ' + CourseId + ').', (msg) => { 
-                    fs.unlink(name, function(err){
-                        call();
-                    });
+                fs.unlink(name, function(err){ cb(null, null); });
                 } , [], name);
             }
-        ]);
-    });
+    ], function(err, result) {});
 }
 
 /*________________________________________*/
