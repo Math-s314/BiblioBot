@@ -375,7 +375,8 @@ function GetUnvalidate(message, options) {
  * @param {Discord.Message} message
  * @param {string[]} options 
  * @description Delete old file in guild's 'valide' folder(if file exists), and move new file into guild's 'valide' folder
- * @APICall 12 max
+ * @APICall 3->8
+ * @todo Should we save the author as user in memory (user settings)
  */
 function ValidateCourse(message, options) {
     //Guild's log
@@ -405,150 +406,185 @@ function ValidateCourse(message, options) {
     }
 
     //Results
+    let filesAccess = null;
+    let paramInfos = [];
+
     async.series([
-        function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, 'wait', cb);}
-    ], function (err, result) {
-        //"Dynamic" ID verification
-        if (result[0] == '') {
-            BasicFunction.SendRightChannel(message, options, 'error', 'This course has already been validated.');
-            return;
-        }
-
-        async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'author', 'permission', 'level'], cb); }
-        ], function (err, resultBis) {
-            //Check permissions
-            const roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
-
-            if (!roleCondition || message.author.id == resultBis[0][1]) {
-                BasicFunction.SendRightChannel(message, options, 'error', 'You are not allowed to do that.');
-                return;
-            }
-            if (resultBis[0][2] == 'r') {
-                BasicFunction.SendRightChannel(message, options, 'error', 'This course has already been refused.');
-                return;
-            }
-
-            async.series([
-                //Check if an older version of the file already exist in the valide folder
-                function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, 'valide', cb); },
-                //Move concretely the validated file
-                function (cb) { BasicFunction.MoveFile('wait',result[0], 'valide', guild, cb); }
-            ], function (err, resultTierce) {
-                //Delete older file version
-                BasicFunction.DeleteFile(resultTierce[0], [options[0], 'It\'s the old version of your file. With the validation of the new one, the old one has been deleted.'], function (err, res) {
-                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully validated.');
-                    
-                    let fakeMessage = {
-                        author: Import.client.users.cache.get(resultBis[0][1])
-                    };
-                    if(fakeMessage.author != undefined){
-                        if(Import.UserParameters.get(resultBis[0][1]) == undefined) {
-                            Import.UserParameters.set(resultBis[0][1], new Import.UserVariable());
-                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username + '\nIf you want to disable this information messages send `info -disable` to the bot in DM', (msg) => {}, [], '', false);
-                        }
-                        else if(Import.UserParameters.get(resultBis[0][1]).WantDM)
-                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username, (msg) => {}, [], '', false);
-                    }
-                });
+        //Find files access (un-validate)
+        function (cb) { 
+            BasicFunction.GetFileLinkById(CourseId, guild, (err, res) => {
+                filesAccess = res;
+                cb(null, null);
             });
-        });
-    });
+        },
+        //Get necessary information about unvalidate file
+        function (cb) {
+            //"Dynamic" ID verification
+            if (filesAccess.unvalidate == null) {
+                BasicFunction.SendRightChannel(message, options, 'error', 'This course has already been validated.');
+                cb('wrong_id', null);
+                return;
+            }
+
+            BasicFunction.GetInfoProperty(filesAccess.unvalidate.link, ['subject', 'author', 'level'], (err, res) => {
+                paramInfos = res;
+                cb(null, null);
+            }); 
+        },
+        //Check some conditions and move concretely the validated file
+        function (cb) {
+            //Check permissions
+            const roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(paramInfos[0])]);
+            if (!roleCondition || message.author.id == paramInfos[1]) {
+                BasicFunction.SendRightChannel(message, options, 'error', 'You are not allowed to do that.');
+                cb('not_allowed', null);
+                return;
+            }
+            if (filesAccess.unvalidate.permission == 'r') {
+                BasicFunction.SendRightChannel(message, options, 'error', 'This course has already been refused.');
+                cb('wrong_perm', null);
+                return;
+            }
+
+            BasicFunction.SetInfoProperty(filesAccess.unvalidate.link, 'permission', 'v', cb);
+        },
+        //Check if an older version of the file already exist in the valide folder and delete it
+        function (cb) {
+            if(filesAccess.validate != null)
+                BasicFunction.DeleteFile(filesAccess.validate.link, [options[0], 'It\'s the old version of your file. With the validation of the new one, the old one has been deleted.'], cb);
+            else
+                cb(null, null);
+        },
+        //Send a message to the validator and the author (if DM are enabled)
+        function (cb) {
+            BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully validated.');
+                    
+            let fakeMessage = {
+                author: Import.client.users.cache.get(paramInfos[1])
+            };
+            if(fakeMessage.author != undefined){
+                if(Import.UserParameters.get(paramInfos[1]) == undefined) {
+                    Import.UserParameters.set(paramInfos[1], new Import.UserVariable()); //Useless no ? It isn't saved and it just use more memory for nothing. We could save it but it's just store user information without giving a service.
+                    BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username + '\nIf you want to disable this information messages send `info -disable` to the bot in DM', (msg) => {}, [], '', false);
+                }
+                else if(Import.UserParameters.get(paramInfos[1]).WantDM)
+                    BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been validated by ' + message.author.username, (msg) => {}, [], '', false);
+            }
+
+            cb(null, null);
+        }
+    ], function (err, result) {});
 }
 
 /**
  * 
  * @param {Discord.Message} message
- * @param {string[]} options 
+ * @param {string[]} options
+ * @APICall 3->8 (gen 3)
  */
 function RefuseCourse(message, options) {
+    //Guild's log
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('RefuseCourse');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
-    let CourseId = parseInt(BasicFunction.GetMessageParameter(options, 'id'));
-    let scope = BasicFunction.GetMessageParameter(options, 'scope');
-
-    if (scope == '' || scope == '-1' || scope == undefined)
-        scope = 'wait';
-    
-    let valide = scope.startsWith('valide');
-
+    //Check the validation and refuse system
     if (!(Import.GuildParameters.get(guild).IsThereAValidation)) {
         BasicFunction.SendRightChannel(message, options, 'error', 'The validation system isn\'t activated. you can\'t execute this command.');
         return;
     }
-
     if (!(Import.GuildParameters.get(guild).IsThereARefuse)) {
         BasicFunction.SendRightChannel(message, options, 'error', 'The refuse system isn\'t activated. you can\'t execute this command.');
         return;
     }
 
-    if(CourseId < 0)
-    {
+    //Find, check and complete message's arguments
+    let CourseId = parseInt(BasicFunction.GetMessageParameter(options, 'id'));
+    let scope = BasicFunction.GetMessageParameter(options, 'scope');
+    if (scope == '' || scope == '-1' || scope == undefined)
+        scope = 'wait';
+    
+    if(CourseId < 0) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
-
-    if(!BasicFunction.DoesIdExist(CourseId, guild))
-    {
+    if(!BasicFunction.DoesIdExist(CourseId, guild)) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
         return;
     }
 
-    async.series([
-        function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, scope, cb); },
-        function (cb) { if (valide) BasicFunction.GetFileLinkById(CourseId, guild, 'wait', cb); else cb();}
-    ], function (err, result) {
-        if (result[0] == '') {
-            BasicFunction.SendRightChannel(message, options, 'error', 'The scope isn\'t correct.');
-            return;
-        }
-        let NewVersionInWait = (valide && result[1] != '');
+    //Results
+    let valide = scope.startsWith('valide');
+    let filesAccess = null;
+    let paramInfos = [];
+    let desired = null;
 
-        async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], ['subject', 'level', 'author', 'permission'], cb); }
-        ], function (err, resultBis) {
-            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(resultBis[0][0])]);
+    async.series([
+        //Find files access (un-validate)
+        function (cb) { 
+            BasicFunction.GetFileLinkById(CourseId, guild, (err, res) => {
+                filesAccess = res;
+                cb(null, null);
+            });
+        },
+        //Get necessary information about file
+        function (cb) {
+            //"Dynamic" ID and scope verification
+            desired = filesAccess[(valide) ? "validate" : "unvalidate"];
+            if (desired == null) {
+                BasicFunction.SendRightChannel(message, options, 'error', 'The scope or the ID isn\'t correct.');
+                cb('wrong_scope', null);
+                return;
+            }
+
+            BasicFunction.GetInfoProperty(desired.link, ['subject', 'level', 'author'], (err, res) => {
+                paramInfos = res;
+                cb(null, null);
+            }); 
+        },
+        //Check some conditions and move concretely the validated file
+        function (cb) {
+            //Check permissions
+            var roleCondition = BasicFunction.GetRole(message.member.roles, Import.GuildParameters.get(guild).role_subject[parseInt(paramInfos[0])]);
             if(!roleCondition) {
                 BasicFunction.SendRightChannel(message, options, 'error', 'You are not allowed to do that');
+                cb('not_allowed', null);
                 return;
             }
-
-            if(resultBis[0][3] == 'r')
+            if(desired.permission == 'r')
             {
                 BasicFunction.SendRightChannel(message, options, 'error', 'This file has been already refused.');
+                cb('wrong_perm', null);
                 return;
             }
 
-            var position = 'valide/' + resultBis[0][0] + '/' + resultBis[0][1];
-            async.series([
-                function (cb) { BasicFunction.SetInfoProperty(result[0], 'permission', 'r', cb); },
-                function (cb) {
-                    if (NewVersionInWait)
-                        BasicFunction.DeleteFile(result[0], [options[0], 'It\'s just the old version of your file. It has been refused'], cb);
-                    else if(valide)
-                        BasicFunction.MoveFile(position, result[0], 'wait', guild, cb);
-                    
-                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.', (msg) => {});
-                },
-                function (cb) {
-                    let fakeMessage = {
-                        author: Import.client.users.cache.get(resultBis[0][2])
-                    };
-                    if(fakeMessage.author != undefined && message.author.id != resultBis[0][2]){
-                        if(Import.UserParameters.get(resultBis[0][2]) == undefined) {
-                            Import.UserParameters.set(resultBis[0][2], new Import.UserVariable());
-                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username + '\nIf you want to disable this information messages send `info -disable` to the bot in DM', (msg) => {}, [], '', false);
-                        }
-                        else if(Import.UserParameters.get(resultBis[0][2]).WantDM)
-                            BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username, (msg) => {}, [], '', false);
-                    }
+            BasicFunction.SetInfoProperty(desired.link, 'permission', 'r', cb);
+        },
+        //If it's necessary to delete a file which is waiting
+        function (cb) {
+            if (valide && filesAccess.unvalidate != null)
+                BasicFunction.DeleteFile(desired.link, [options[0], 'It\'s just the old version of your file. It has been refused'], cb);
+            else
+                cb(null, null);
+        },
+        //Send a message to the refusor and the author (if DM are enabled)
+        function (cb) {
+            BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully refused.', (msg) => {});
+
+            let fakeMessage = {
+                author: Import.client.users.cache.get(paramInfos[2])
+            };
+            if(fakeMessage.author != undefined && message.author.id != paramInfos[2]){
+                if(Import.UserParameters.get(paramInfos[2]) == undefined) {
+                    Import.UserParameters.set(paramInfos[2], new Import.UserVariable()); //Useless no ? It isn't saved and it just use more memory for nothing. We could save it but it's just store user information without giving a service.
+                    BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username + '\nIf you want to disable this information messages send `info -disable` to the bot in DM', (msg) => {}, [], '', false);
                 }
-            ]);
-        })
-    });
+                else if(Import.UserParameters.get(paramInfos).WantDM)
+                    BasicFunction.SendRightChannel(fakeMessage, [options[0]], 'info', 'Your file (ID = ' + CourseId.toString() + ') has been refused by ' + message.author.username, (msg) => {}, [], '', false);
+            }
+        }
+    ], function (err, result) {});
 }
 
 /**
