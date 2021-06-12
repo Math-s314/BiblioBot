@@ -680,54 +680,74 @@ function UpdateCourse(message, options) {
 /**
  * 
  * @param {Discord.Message} message 
- * @param {string[]} options 
+ * @param {string[]} options
+ * @APICall 7
  */
 function DeleteCourse(message, options) {
+    //Guild's log
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('DeleteCourse');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
+    //Find, check and complete message's arguments
     var CourseId = parseInt(BasicFunction.GetMessageParameter(options, 'id'));
     var scope = BasicFunction.GetMessageParameter(options, 'scope');
-
     if (scope == '' || scope == undefined || scope == '-1')
         scope = 'valide';
 
-    if(CourseId < 0)
-    {
+    if(CourseId < 0) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Missing `ID` argument !');
         return;
     }
-
-    if(!BasicFunction.DoesIdExist(CourseId, guild))
-    {
+    if(!BasicFunction.DoesIdExist(CourseId, guild)) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
         return;
     }
 
+    //Results
+    let valide = scope.startsWith('valide');
+    let filesAccess = null;
+    let paramInfos = [];
+    let desired = null;
     async.series([
-        function (cb) { BasicFunction.GetFileLinkById(CourseId, guild, scope, cb); }
-    ], function (err, result) {
-        if (result[0] == '') {
-            BasicFunction.SendRightChannel(message, options, 'error', 'The scope isn\'t correct.');
-            return;
-        }
-
-        async.series([
-            function (cb) { BasicFunction.GetInfoProperty(result[0], ['author'], cb); }
-        ], function (err, resultBis) {
-            if (resultBis[0][0] != message.author.id) {
-                BasicFunction.SendRightChannel(message, options, 'error', 'You are not the course\'s author');
+        //Find files access (un-validate)
+        function (cb) {
+            BasicFunction.GetFileLinkById(CourseId, guild, (err, res) => {
+                filesAccess = res;
+                cb(null, null);
+            });
+        },
+        //Get necessary information about file
+        function (cb) {
+            console.log(filesAccess);
+            //"Dynamic" ID and scope verification
+            desired = filesAccess[(valide) ? "validate" : "unvalidate"];
+            if (desired == null) {
+                BasicFunction.SendRightChannel(message, options, 'error', 'The scope or the ID isn\'t correct.');
+                cb('wrong_scope', null);
                 return;
             }
 
-            BasicFunction.DeleteFile(result[0], [options[0], 'You ask for this deletion.'], function (err, result) {
-                Import.GuildParameters.get(guild).Idlost.push(CourseId);
-                    BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully deleted.');
+            BasicFunction.GetInfoProperty(desired.link, ['author'], (err, res) => {
+                paramInfos = res;
+                cb(null, null);
+            }); 
+        },
+        //Check message's author and concretely delete file
+        function (cb) {
+            if (paramInfos[0] != message.author.id) {
+                BasicFunction.SendRightChannel(message, options, 'error', 'You are not the course\'s author');
+                cb('not_allowed', null);
+                return;
+            }
+
+            BasicFunction.DeleteFile(desired.link, [options[0], 'You ask for this deletion.'], (err, result) => {
+                Import.GuildParameters.get(guild).Idlost.push(CourseId); //Add ID to Lost ID array
+                BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully deleted.');//Confirmation
             });
-        });
-    });
+        }
+    ], function (err, result) {});
 }
     
 /*________________________________________*/
