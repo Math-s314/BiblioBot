@@ -157,7 +157,7 @@ function SearchInBiblio(message, options, subject_np) {
     async.series([
         //List obtention
         function (cb) {
-            BasicFunction.GetAllFileInPosition('', guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author, permission))', searchParam, function (err, res, param, nextCB) {
+            BasicFunction.GetAllFileInPosition(guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author, permission))', searchParam, function (err, res, param, nextCB) {
                 res.data.files.forEach(function (iterator, i, array) {
                     //Check parameters and permissions
                     if (iterator.appProperties.permission == 'v' && parseInt(iterator.appProperties.subject) == param.subject && parseInt(iterator.appProperties.level) == param.level && (param.type == "-1" || param.type == iterator.appProperties.type)){

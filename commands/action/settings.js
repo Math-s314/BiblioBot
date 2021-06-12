@@ -255,7 +255,7 @@ function ModifyASetting(message, options) {
         async.series([
             //Change permission for al 'nr' files
             function (call) {
-                BasicFunction.GetAllFileInPosition('', guild, 'files(id, name, appProperties(subject, level, permission))', null, (err, res, param, callcall) => {
+                BasicFunction.GetAllFileInPosition(guild, 'files(id, name, appProperties(subject, level, permission))', null, (err, res, param, callcall) => {
                     //Each files async (take a lot of time)
                     async.forEachOf(res.data.files, (file, i, cb) => {
                         if (file.appProperties.permission == 'nr')

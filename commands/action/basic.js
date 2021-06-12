@@ -53,10 +53,7 @@ function GetRole(manager, roleId) {
  * @returns {boolean}
  */
 function DoesIdExist(CourseId, guild) {
-    if(CourseId <= Import.GuildParameters.get(guild).lastId && Import.GuildParameters.get(guild).Idlost.indexOf(CourseId) == -1)
-        return true;
-    else
-        return false;
+    return (CourseId <= Import.GuildParameters.get(guild).lastId && Import.GuildParameters.get(guild).Idlost.indexOf(CourseId) == -1);
 }
 
 /*________________________________________*/
@@ -364,12 +361,12 @@ function GetFileLinkById(CourseId, guild, seriesCallback) {
         validate : null
     };
 
-    GetAllFileInPosition('', guild, 'files(id, appProperties(CourseId, permission))', CourseId, function (err, res, param, callcall) {
+    GetAllFileInPosition(guild, 'files(id, appProperties(CourseId, permission))', CourseId, function (err, res, param, callcall) {
         for (let i = 0; i < res.data.files.length; i++) {
             if (res.data.files[i].appProperties.CourseId == param) {
                 resultFiles[(res.data.files[i].appProperties.permission == 'v') ? "validate" : "unvalidate"] = {
                     link : res.data.files[i].id,
-                    permission : res.data.files[i].appProperties.permission
+                    permission : res.data.files[i].appProperties.permissionZ
                 };
 
                 if (resultFiles.validate != null && resultFiles.unvalidate != null) {
@@ -384,14 +381,13 @@ function GetFileLinkById(CourseId, guild, seriesCallback) {
 
 /** 
  * 
- * @param {string} position //Useless
  * @param {Discord.Snowflake} guild
  * @param {string} fields
  * @param {function(Error, any, any, function(Error, boolean))} pageCallback
  * @returns {boolean}
  * @APICall 1 (if less files than 1000)
  */
-function GetAllFileInPosition(position, guild, fields, param, pageCallback, seriesCallback) {
+function GetAllFileInPosition(guild, fields, param, pageCallback, seriesCallback) {
     //Basic parameters for search commands
     var searchParam = {
         auth: Import.auth,

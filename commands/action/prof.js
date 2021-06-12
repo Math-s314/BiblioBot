@@ -244,7 +244,7 @@ function SearchUnvalidateCourse(message, options) {
     async.series([
         //List obtention
         function (cb) {
-            BasicFunction.GetAllFileInPosition('', guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author, permission))', subject_n, function (err, res, param, nextCB) {
+            BasicFunction.GetAllFileInPosition(guild, 'files(name, appProperties(CourseId, level, subject, type, vera, verb, author, permission))', subject_n, function (err, res, param, nextCB) {
                 res.data.files.forEach(function (iterator, i, array) {
                     //Check the subject and the permission
                     if (parseInt(iterator.appProperties.subject) == param && iterator.appProperties.permission != 'v') {
