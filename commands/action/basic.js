@@ -243,6 +243,7 @@ function GetInfoProperty(link, param, seriesCallback) {
  * @param {string} link 
  * @param {string} param TODO : transform in string[]
  * @param {string} newValue
+ * @param {function(Error, any)} seriesCallback
  */
 function SetInfoProperty(link, param, newValue, seriesCallback) {
 
@@ -360,6 +361,7 @@ function MoveFile(originalPosition, link, position, guild, seriesCallback) {
  * 
  * @param {string} link
  * @param {[string, string]} reason The first element must be the command name and the second the reason of this deletion.
+ * @param {function(Error, any)} seriesCallback
  */
 function DeleteFile(link, reason, seriesCallback) {
     /*Import.GuildLogStream.get(guild).write('\n');
@@ -439,7 +441,7 @@ function DeleteFile(link, reason, seriesCallback) {
  * @param {number} CourseId 
  * @param {Discord.Snowflake} guild 
  * @param {string} scope
- * @returns {string}
+ * @param {function(Error, any)} seriesCallback
  */
 function GetFileLinkById(CourseId, guild, scope = '', seriesCallback) {
     if(CourseId < 0)
@@ -467,8 +469,9 @@ function GetFileLinkById(CourseId, guild, scope = '', seriesCallback) {
  * @param {string} position 
  * @param {Discord.Snowflake} guild
  * @param {string} fields
- * @param {function(Error, any, any, function(Error, boolean))} pageCallback
- * @returns {boolean}
+ * @param {any} param Param that will be send to your pageCallback (pretty useless)
+ * @param {function(Error, any, any, function(Error, boolean))} pageCallback Parameters : err and res (first any) from drive, your param (second any), function is the cb from async while(to get next page boolean must be true)
+ * @param {function(Error, any)} seriesCallback
  */
 function GetAllFileInPosition(position, guild, fields, param, pageCallback, seriesCallback) {
 
@@ -539,6 +542,7 @@ function GetAllFileInPosition(position, guild, fields, param, pageCallback, seri
  * 
  * @param {string} folder
  * @param {Discord.Snowflake} guild
+ * @param {function(Error, any)} seriesCallback
  */
 function FindFolderLink(folder, guild, seriesCallback) {
     let parts = folder.split('/');
