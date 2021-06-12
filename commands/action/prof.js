@@ -235,8 +235,7 @@ function SearchUnvalidateCourse(message, options) {
     let subject_n = Import.GuildParameters.get(guild).subject_name.indexOf(BasicFunction.GetMessageParameter(options, 'subject'));
     let unvalidate = [['Title', 'Value']];
 
-    if(subject_n == -1)
-    {
+    if(subject_n == -1) {
         BasicFunction.SendRightChannel(message, options, 'error', 'Missing `subject` argument !');
         return;
     }
@@ -330,41 +329,41 @@ function GetUnvalidate(message, options) {
         },
         //Get file name (to send a file with the right name to Discord)
         function (cb) {
-        //"Dynamic" ID verification
+            //"Dynamic" ID verification
             if (filesAccess.unvalidate == null) {
-            BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
+                BasicFunction.SendRightChannel(message, options, 'error', 'Wrong ID !');
                 cb('wrong_id', null);
-            return;
-        }
-
-                Import.drive.files.get({
-                    auth: Import.auth,
-                fileId: filesAccess.unvalidate.link,
-                    fields: 'name'
-                }, function (err, res) {
-                    name = res.data.name;
-                cb(null, null);
-                });
-            },
-            //Get file's content, and save it on the disk
-        function (cb) {
-                Import.drive.files.get({
-                    auth: Import.auth,
-                fileId: filesAccess.unvalidate.link,
-                    alt: 'media'
-                }, {
-                    responseType: 'arraybuffer'
-                }, function (err, res) {
-                    fs.writeFileSync(name, new Uint8Array(res.data));
-                cb(null, null);
-                });
-            },
-            //Send file to Discord and delete local copy
-        function (cb) {
-                BasicFunction.SendRightChannel(message, options, 'result', 'Here is your file (ID = ' + CourseId + ').', (msg) => { 
-                fs.unlink(name, function(err){ cb(null, null); });
-                } , [], name);
+                return;
             }
+
+            Import.drive.files.get({
+                auth: Import.auth,
+                fileId: filesAccess.unvalidate.link,
+                fields: 'name'
+            }, function (err, res) {
+                name = res.data.name;
+                cb(null, null);
+            });
+        },
+        //Get file's content, and save it on the disk
+        function (cb) {
+            Import.drive.files.get({
+                auth: Import.auth,
+                fileId: filesAccess.unvalidate.link,
+                alt: 'media'
+            }, {
+                responseType: 'arraybuffer'
+            }, function (err, res) {
+                fs.writeFileSync(name, new Uint8Array(res.data));
+                cb(null, null);
+            });
+        },
+        //Send file to Discord and delete local copy
+        function (cb) {
+            BasicFunction.SendRightChannel(message, options, 'result', 'Here is your file (ID = ' + CourseId + ').', (msg) => { 
+                fs.unlink(name, function(err){ cb(null, null); });
+            } , [], name);
+        }
     ], function(err, result) {});
 }
 
@@ -552,8 +551,7 @@ function RefuseCourse(message, options) {
                 cb('not_allowed', null);
                 return;
             }
-            if(desired.permission == 'r')
-            {
+            if(desired.permission == 'r') {
                 BasicFunction.SendRightChannel(message, options, 'error', 'This file has been already refused.');
                 cb('wrong_perm', null);
                 return;
@@ -591,7 +589,7 @@ function RefuseCourse(message, options) {
  * 
  * @param {Discord.Message} message
  * @param {string[]} options 
- * @APICall 8+ (max 13)
+ * @APICall 3->13 (gen 8)
  */
 function UpdateCourse(message, options) {
     //Guild's log
@@ -674,7 +672,7 @@ function UpdateCourse(message, options) {
             else
                 BasicFunction.SendRightChannel(message, options, 'confirm', 'Your file has been successfully updated :wink: ', (msg) => { cb(null, null); });
         } 
-    ]);
+    ], function(err, result) {});
 }
 
 /**

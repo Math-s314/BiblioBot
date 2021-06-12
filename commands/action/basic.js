@@ -244,8 +244,11 @@ function GetInfoProperty(link, param, seriesCallback) {
 /**
  * 
  * @param {string} link 
- * @param {string} param TODO : transform in string[]
+ * @param {string} param
  * @param {string} newValue
+ * @param {function(Error, any)} seriesCallback
+ * @APICall 1
+ * @todo transform param in string[] like GetInfoProperty to optimize
  */
 function SetInfoProperty(link, param, newValue, seriesCallback) {
 
@@ -267,50 +270,6 @@ function SetInfoProperty(link, param, newValue, seriesCallback) {
 }
 
 /*________________________________________*/
-
-/**
- * 
- * @param {string} originalPosition //TODO: delete this parameter = is useless
- * @param {string} link
- * @param {string} position
- * @param {Discord.Snowflake} guild
- * @param {function(Error, any)} seriesCallback
- * @APICall 2
- */
-function MoveFile(originalPosition, link, position, guild, seriesCallback) {
-    //Guild's log
-    Import.GuildLogStream.get(guild).write('\n');
-    Import.GuildLogStream.get(guild).write('MoveFile');
-    Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
-
-    if (link == '')
-        return;
-
-    //Basic parameters for the update
-    var updateParam = {
-        auth: Import.auth,
-        fileId: link,
-        addParents: '',
-        removeParents:'',
-        enforceSingleParent: true
-    };
-
-    async.series([
-        //Find necessary folder
-        function (cb) { FindFolderLink(position, guild, cb); }
-    ], function (err, result) {
-        updateParam.addParents = result[0];
-
-        async.series([
-            //Update file properties to change the folder
-            function(cb) {                
-                Import.drive.files.update(updateParam, function (err, res) {
-                    seriesCallback(null, null); 
-                });
-            }
-        ]);
-    });
-}
 
 /**
  * 
@@ -553,7 +512,6 @@ module.exports = {
     GetInfoProperty : GetInfoProperty, //AsyncOKOK
     SetInfoProperty : SetInfoProperty, //AsyncOKOK
     
-    MoveFile: MoveFile, //AsyncOKOK
     DeleteFile : DeleteFile, //AsyncOKOK
     GetFileLinkById : GetFileLinkById, //AsyncOKOK
     GetAllFileInPosition: GetAllFileInPosition, //AsyncOKOK
