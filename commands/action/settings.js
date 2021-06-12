@@ -21,62 +21,48 @@ const settingsCommand = ['create_settings', 'modify_settings', 'url', 'handle_se
  * 
  * @param {Discord.Message} message 
  * @param {string[]} options
+ * @APICall 0
  */
 function CreateASetting(message, options) {
+    //Guild's log
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('CreateASetting');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
-    let param = BasicFunction.GetMessageParameter(options, 'level');
+    /**
+     * Find setting's type to create (check message's parameter)
+     */
 
-    if(param != '-1')
-    {
-        if(param == '')
-        {
+    //Level
+    let param = BasicFunction.GetMessageParameter(options, 'level');
+    if(param != '-1') {
+        //Check message's parameter value
+        if(param == '') {
             BasicFunction.SendRightChannel(message, options, 'error', 'Missing value for the `level` argument !');
             return;
         }
         let role = message.mentions.roles.first();
-        if(!role)
-        {
+        if(!role) {
             BasicFunction.SendRightChannel(message, options, 'error', 'Missing a role to execute the command !');
             return;
         }
 
+        //Add settings to settings' object
         Import.GuildParameters.get(guild).level_name.push(param);
         Import.GuildParameters.get(guild).role_level.push(role.id);
-
         BasicFunction.SaveSettings(guild);
 
-        async.timesSeries(Import.GuildParameters.get(guild).subject_name.length, function(i, next){
-            async.series([
-                function (callback) {
-                    BasicFunction.FindFolderLink(('valide/' + new String(i)), guild, callback);
-                }
-            ], function (err, result) {
-                let creatParam = {
-                    auth: Import.auth,
-                    requestBody: {
-                        'parents': result,
-                        'name': new String(Import.GuildParameters.get(guild).level_name.indexOf(param)),
-                        'mimeType': 'application/vnd.google-apps.folder'
-                    }
-                    }
-                Import.drive.files.create(creatParam, function(err, res){ next(null, null);});
-            });
-        }, function (err, res) {
-                BasicFunction.SendRightChannel(message, options, 'confirm', 'The `' + param + '` level has been correctly created.');
-        });
+        //Confirmation
+        BasicFunction.SendRightChannel(message, options, 'confirm', 'The `' + param + '` level has been correctly created.');
         return;
     }
 
+    //Subject
     param = BasicFunction.GetMessageParameter(options, 'subject');
-
-    if(param != '-1')
-    {
-        if(param == '')
-        {
+    if(param != '-1') {
+        //Check message's parameter value
+        if(param == '') {
             BasicFunction.SendRightChannel(message, options, 'error', 'Missing value for the `subject` argument !');
             return;
         }
@@ -93,50 +79,18 @@ function CreateASetting(message, options) {
             return;
         }
 
+        //Add settings to settings' object
         Import.GuildParameters.get(guild).subject_name.push(param);
         Import.GuildParameters.get(guild).role_subject.push(role.id);
         Import.GuildParameters.get(guild).channel_subject.push([channel.id]);
-
         BasicFunction.SaveSettings(guild);
 
-        async.series([
-            function (callback) {
-                async.series([
-                    function (cb) {
-                        BasicFunction.FindFolderLink('valide', guild, cb);
-                    }
-                ], function (err, result) {
-                    let creatParam = {
-                        fields: 'id',
-                        auth: Import.auth,
-                        requestBody: {
-                            'parents': result,
-                            'name': new String(Import.GuildParameters.get(guild).subject_name.indexOf(param)),
-                            'mimeType': 'application/vnd.google-apps.folder'
-                        }
-                    }   
-                    Import.drive.files.create(creatParam, function (err, res) {callback(null, res.data.id); });
-                });
-            }
-        ], function (err, result) {
-            for (let i = 0; i < Import.GuildParameters.get(guild).level_name.length; i++) {
-                let creatParam = {
-                    fields: 'id',
-                    auth: Import.auth,
-                    requestBody: {
-                        'parents': result,
-                        'name': new String(i),
-                        'mimeType': 'application/vnd.google-apps.folder'
-                    }
-                }
-                Import.drive.files.create(creatParam);
-                }
-                BasicFunction.SendRightChannel(message, options, 'confirm', 'The `' + param + '` subject has been correctly created.');
-        });
-
+        //Confirmation
+        BasicFunction.SendRightChannel(message, options, 'confirm', 'The `' + param + '` subject has been correctly created.');
         return;
     }
 
+    //Issue...
     BasicFunction.SendRightChannel(message, options, 'error', 'You have to add a `subject` or a `level` argument to execute this command.');
 }
 
@@ -144,6 +98,7 @@ function CreateASetting(message, options) {
  * 
  * @param {Discord.Message} message 
  * @param {string[]} options
+ * @APICall 0->1+files'nr' (gen 0)
  */
 function ModifyASetting(message, options) {
     const guild = message.guild.id;
@@ -151,34 +106,45 @@ function ModifyASetting(message, options) {
     Import.GuildLogStream.get(guild).write('ModifyASetting');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
+    /**
+     * Find setting's type to create (check message's parameter)
+     */
+
     let param_n = -1;
     let param_s = '-1';
-    param_s = BasicFunction.GetMessageParameter(options, 'level');
 
+    //Level
+    param_s = BasicFunction.GetMessageParameter(options, 'level');
     if(param_s != '-1') {
-        let config = false;
+        //Check message's parameter value
         param_n = Import.GuildParameters.get(guild).level_name.indexOf(param_s);
         if (param_n == -1) {
             BasicFunction.SendRightChannel(message, options, 'error', 'the given level doesn\'t exist');
             return;
         }
 
+        //Boolean used to mark if at least one argument is given
+        let configSuccess = false;
+
+        //Name argument
         let name = BasicFunction.GetMessageParameter(options, 'name');
         if (name != '' && name != '-1') {
-            config = true;
+            configSuccess = true;
             Import.GuildParameters.get(guild).level_name[param_n] = name;
             BasicFunction.SendRightChannel(message, options, 'confirm', 'The level\'s name has been successfully set to `' + name + '`.');
         }
 
+        //Role argument
         let role = message.mentions.roles.first();
         if (role != undefined) {
-            config = true;
+            configSuccess = true;
             Import.GuildParameters.get(guild).role_level[param_n] = role.id;
             BasicFunction.SendRightChannel(message, options, 'confirm', 'The level\'s role has been successfully set to `' + role.name + '`.');
         }
-
         BasicFunction.SaveSettings(guild);
-        if (config)
+
+        //Confirmation
+        if (configSuccess)
             BasicFunction.SendRightChannel(message, options, 'confirm', 'The level\'s configuration is finished.');
         else
             BasicFunction.SendRightChannel(message, options, 'error', 'You have to add a `role` or a `name` argument to execute this command.');
@@ -186,16 +152,20 @@ function ModifyASetting(message, options) {
         return;
     }
 
+    //Subject
     param_s = BasicFunction.GetMessageParameter(options, 'subject');
-
     if (param_s != '-1') {
-        let config = false;
+        //Check message's parameter value
         param_n = Import.GuildParameters.get(guild).subject_name.indexOf(param_s);
         if (param_n == -1) {
             BasicFunction.SendRightChannel(message, options, 'error', 'the given subject doesn\'t exist');
             return;
         }
+        
+        //Boolean used to mark if at least one argument is given
+        let config = false;
 
+        //Name argument
         let name = BasicFunction.GetMessageParameter(options, 'name');
         if (name != '' && name != '-1') {
             Import.GuildParameters.get(guild).subject_name[param_n] = name;
@@ -203,6 +173,7 @@ function ModifyASetting(message, options) {
             BasicFunction.SendRightChannel(message, options, 'confirm', 'The subject\'s name has been successfully set to `' + name + '`.');
         }
 
+        //Role argument
         let role = message.mentions.roles.first();
         if (role != undefined) {
             Import.GuildParameters.get(guild).role_subject[param_n] = role.id;
@@ -210,10 +181,12 @@ function ModifyASetting(message, options) {
             BasicFunction.SendRightChannel(message, options, 'confirm', 'The subject\'s role has been successfully set to `' + role.name + '`.');
         }
         
+        //Channel argument
         let channel = message.mentions.channels.first();
         if (channel != undefined) {
             config = true;
 
+            //If the indicated channel already exist in the wanted list, it is removed from this one
             let index = Import.GuildParameters.get(guild).channel_subject[param_n].indexOf(channel.id);
             if (index != -1) {
                 Import.GuildParameters.get(guild).channel_subject[param_n].splice(index);
@@ -224,8 +197,9 @@ function ModifyASetting(message, options) {
                 BasicFunction.SendRightChannel(message, options, 'confirm', 'The channel has been successfully added to the subject\'s channel list.');
             }
         }
-
         BasicFunction.SaveSettings(guild);
+
+        //Confirmation
         if (config)
             BasicFunction.SendRightChannel(message, options, 'confirm', 'The subject\'s configuration is finished.');
         else
@@ -233,13 +207,13 @@ function ModifyASetting(message, options) {
         return;
     }
 
+    //Global channels
     param_s = BasicFunction.GetMessageParameter(options, 'globalc');
-
-    if (param_s != '-1')
-    {
+    if (param_s != '-1') {
+        //Check channel argument
         let channel = message.mentions.channels.first();
-
         if (channel != undefined) {
+            //If the indicated channel already exist in the wanted list, it is removed from this one
             let index = Import.GuildParameters.get(guild).channel_prof.indexOf(channel.id);
             if (index != -1) {
                 Import.GuildParameters.get(guild).channel_prof.splice(index, 1);
@@ -259,56 +233,69 @@ function ModifyASetting(message, options) {
         return;
     }
 
+    //Validation system
     param_s = BasicFunction.GetMessageParameter(options, 'validation');
-
+    //Enable it
     if (param_s == 'true') {
+        //Enable validation system in settings' object
         Import.GuildParameters.get(guild).IsThereAValidation = true;
         BasicFunction.SaveSettings(guild);
+
+        //Confirmation
         BasicFunction.SendRightChannel(message, options, 'confirm', 'The validation system has been activated. You can now validate and refuse file(s).');
         return;
     }
+    //Disable it
     else if (param_s == 'false') {
-        Import.GuildParameters.get(guild).IsThereAValidation = false;
+        //Disable it on settings' object
+        Import.GuildParameters.get(guild).IsThereAValidation = false;   
+        BasicFunction.SaveSettings(guild);
+
+        //Validate all waiting files
         async.series([
+            //Change permission for al 'nr' files
             function (call) {
-                BasicFunction.GetAllFileInPosition('wait', guild, 'files(id, name, appProperties(subject, level, permission))', null, function (err, res, param, callcall) {
-                    async.forEachOf(res.data.files, function (file, i, cb) {
+                BasicFunction.GetAllFileInPosition('', guild, 'files(id, name, appProperties(subject, level, permission))', null, (err, res, param, callcall) => {
+                    //Each files async (take a lot of time)
+                    async.forEachOf(res.data.files, (file, i, cb) => {
                         if (file.appProperties.permission == 'nr')
-                            BasicFunction.MoveFile('wait', file.id, 'valide/' + file.appProperties.subject + '/' + file.appProperties.level, guild, cb);
+                            BasicFunction.SetInfoProperty(file.id, 'permission', 'v', cb);
                         else
-                            cb();
-                    }, function (err) {
-                        callcall(null, true);
-                    });
+                            cb(null, null);
+                    }, (err) => { callcall(null, true); });
                 }, call);
             },
+            //Send confirmation
             function (call) {
-                BasicFunction.SaveSettings(guild);
                 BasicFunction.SendRightChannel(message, options, 'confirm', 'The validation system has been desactivated. You can\'t no more validate and refuse file(s).');
-                call();
+                call(null, null);
             }
-        ])
+        ]);
         return;
     }
+    //Value issue
     else if (param_s != '-1') {
         BasicFunction.SendRightChannel(message, options, 'error', 'Wrong value for the `validation` argument.');
         return;
     }
 
+    //Refuse system
     param_s = BasicFunction.GetMessageParameter(options, 'refuse');
-
+    //Enable it
     if (param_s == 'true') {
         Import.GuildParameters.get(guild).IsThereARefuse = true;
         BasicFunction.SaveSettings(guild);
         BasicFunction.SendRightChannel(message, options, 'confirm', 'The refuse system has been activated. You can now refuse file(s).');
         return;
     }
+    //Disable it
     else if (param_s == 'false') {
         Import.GuildParameters.get(guild).IsThereARefuse = false;
         BasicFunction.SaveSettings(guild);
         BasicFunction.SendRightChannel(message, options, 'confirm', 'The refuse system has been desactivated. You can\'t no more refuse file(s).');
         return;
     }
+    //Value issue
     else if (param_s != '-1') {
         BasicFunction.SendRightChannel(message, options, 'error', 'Wrong value for the `refuse` argument.');
         return;
@@ -321,52 +308,30 @@ function ModifyASetting(message, options) {
  * 
  * @param {Discord.Message} message 
  * @param {string[]} options
+ * @APICall 0
  */
 function SetUrl(message, options) {
+    //Guild's log
     const guild = message.guild.id;
     Import.GuildLogStream.get(guild).write('\n');
     Import.GuildLogStream.get(guild).write('SetUrl');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
 
-    if (message.embeds[0] == undefined)
-    {
+    //Check message's embed
+    if (message.embeds[0] == undefined) {
         BasicFunction.SendRightChannel(message, options, 'error', 'URL is missing !');
         return;
     }
 
+    //Find folder ID
     const url = message.embeds[0].url;
     let link = url.split('/')[5];
     link = link.split('?')[0];
-
     Import.GuildParameters.get(guild).url = link;
-
     BasicFunction.SaveSettings(guild);
 
-    async.series([
-        function (cb) {
-            let creatParam = {
-                auth: Import.auth,
-                requestBody: {
-                    'parents': [link],
-                    'name': 'valide',
-                    'mimeType': 'application/vnd.google-apps.folder'
-                }
-            }
-            Import.drive.files.create(creatParam, function (err, res) { cb(null, 'one'); });
-        },
-        function (cb) {
-            let creatParam = {
-                auth: Import.auth,
-                requestBody: {
-                    'parents': [link],
-                    'name': 'wait',
-                    'mimeType': 'application/vnd.google-apps.folder'
-                }
-            }
-            Import.drive.files.create(creatParam, function (err, res) { cb(null, 'one'); });
-        },
-        function (cb) { BasicFunction.SendRightChannel(message, options, 'confirm', 'Your drive has been succesfully initialized.'); }
-    ]);
+    //Confirmation
+    BasicFunction.SendRightChannel(message, options, 'confirm', 'Your drive has been succesfully initialized.');
 }
 
 /**
@@ -437,8 +402,7 @@ function ChangePrefix(message, options) {
     Import.GuildLogStream.get(guild).write('ChangePrefix');
     Import.GuildLogStream.get(guild).write(JSON.stringify(arguments, null, 4));
     
-    if(options.length < 2)
-    {
+    if(options.length < 2) {
         BasicFunction.SendRightChannel(message, options, 'error', 'The new prefix is missing');
         return;
     }
