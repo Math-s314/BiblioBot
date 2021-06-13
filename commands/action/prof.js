@@ -651,7 +651,7 @@ function UpdateCourse(message, options) {
             else
                 cb(null, null);
         },
-        //Delete the unvalide file if it exists and if the validation system is disabled
+        //Delete the valide file if it exists and if the validation system is disabled
         function (cb) {
             if (!(Import.GuildParameters.get(guild).IsThereAValidation) && filesAccess.validate != null)
                 BasicFunction.DeleteFile(filesAccess.validate.link, [options[0], 'It\'s just an old version of your file. The new one is in the drive instead of this one.'], cb);

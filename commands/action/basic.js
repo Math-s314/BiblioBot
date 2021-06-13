@@ -373,7 +373,7 @@ function GetFileLinkById(CourseId, guild, seriesCallback) {
             if (res.data.files[i].appProperties.CourseId == param) {
                 resultFiles[(res.data.files[i].appProperties.permission == 'v') ? "validate" : "unvalidate"] = {
                     link : res.data.files[i].id,
-                    permission : res.data.files[i].appProperties.permissionZ
+                    permission : res.data.files[i].appProperties.permission
                 };
 
                 if (resultFiles.validate != null && resultFiles.unvalidate != null) {
