@@ -740,8 +740,13 @@ function DeleteCourse(message, options) {
                 return;
             }
 
-            BasicFunction.DeleteFile(desired.link, [options[0], 'You ask for this deletion.'], (err, result) => {
-                Import.GuildParameters.get(guild).Idlost.push(CourseId); //Add ID to Lost ID array
+            BasicFunction.DeleteFile(desired.link, [options[0], 'You ask for this deletion.'], (err, res) => {
+                //Add ID to Lost ID array if the non-desired file doesn't exist
+                if(filesAccess[(!valide) ? "validate" : "unvalidate"] == null) {
+                    Import.GuildParameters.get(guild).Idlost.push(CourseId);
+                    BasicFunction.SaveSettings(guild);
+                }
+
                 BasicFunction.SendRightChannel(message, options, 'confirm', 'The file has been successfully deleted.');//Confirmation
             });
         }

@@ -292,57 +292,62 @@ function DeleteFile(link, reason, seriesCallback) {
         fileId: link
     }
 
+    //Results
+    let name = '';
+    let paramInfos = [];
+
     async.series([
         //Get author to send him a notification
-        function (call) { GetInfoProperty(link, ['author'], call); }
+        function (cb) {
+            GetInfoProperty(link, ['author'], (err, res) => {
+                paramInfos = res;
+                cb(null, null);
+            });
+        },
+        //Get name to save the file
+        function (cb) {
+            Import.drive.files.get({
+                auth: Import.auth,
+                fileId: link,
+                fields: 'name'
+            }, function (err, res) {
+                name = res.data.name;
+                cb(null, null);
+            });
+        },
+        //Download file's content
+        function (cb) {
+            Import.drive.files.get({
+                auth: Import.auth,
+                fileId: link,
+                alt: 'media'
+            }, {
+                responseType: 'arraybuffer'
+            }, function (err, res) {
+                fs.writeFileSync(name, new Uint8Array(res.data));
+                cb(null, null);
+            });
+        },
+        //Send notification to the author with his file
+        function (cb) {
+            let fakeMessage = {
+                author: Import.client.users.cache.get(paramInfos[0])
+            };
+            SendRightChannel(fakeMessage, reason, 'info', 'Your file will be deleted, I send it to you. Reason :\n' + reason[1], (msg) => { 
+                fs.unlink(name, (err) => {
+                    cb(null, null);
+                });
+            }, [], name, false);
+        },
+        //Delete file (put into the trash and then empty the trash)
+        function (cb) {
+            Import.drive.files.delete(deleteParam, function (err, res) { cb(null, null); });
+        },
+        function (cb) {
+            Import.drive.files.emptyTrash({ auth: Import.auth }, function (err, res) { cb(null, null); });
+        }
     ], function (err, result) {
-        let name = '';
-        async.series([
-            //Get name to save the file
-            function (call) {
-                Import.drive.files.get({
-                    auth: Import.auth,
-                    fileId: link,
-                    fields: 'name'
-                }, function (err, res) {
-                    name = res.data.name;
-                    call();
-                });
-            },
-            //Download file's content
-            function (call) {
-                Import.drive.files.get({
-                    auth: Import.auth,
-                    fileId: link,
-                    alt: 'media'
-                }, {
-                    responseType: 'arraybuffer'
-                }, function (err, res) {
-                    fs.writeFileSync(name, new Uint8Array(res.data));
-                    call();
-                });
-            },
-            //Send notification to the author with his file
-            function (call) {
-                let fakeMessage = {
-                    author: Import.client.users.cache.get(result[0][0])
-                };
-                SendRightChannel(fakeMessage, reason, 'info', 'Your file will be deleted, I send it to you. Reason :\n' + reason[1], (msg) => { 
-                    fs.unlink(name, (err) => {
-                        call();
-                    });
-                }, [], name, false);
-            },
-            //Delete file (put into the trash and then empty the trash)
-            function (cb) {
-                Import.drive.files.delete(deleteParam, function (err, res) { cb(null, null); });
-            },
-            function (cb) {
-                Import.drive.files.emptyTrash({ auth: Import.auth }, function (err, res) { cb(null, null); });
-            }
-        ], function (err, result) {
-            seriesCallback(null, null);
-        });
+        seriesCallback(null, null);
     });
 }
 
