@@ -398,7 +398,7 @@ function GetAllFileInPosition(guild, fields, param, pageCallback, seriesCallback
     //Basic parameters for search commands
     var searchParam = {
         auth: Import.auth,
-        q: "mimeType != 'application/vnd.google-apps.folder'",//Search real files, not folders
+        q: "mimeType != 'application/vnd.google-apps.folder' and '" + Import.GuildParameters.get(guild).url + "' in parents",//Search real files, not folders in the wanted folder
         fields: 'nextPageToken, ' + fields,//To be able to continue
         spaces: 'drive',
         pageToken: null,
@@ -419,38 +419,6 @@ function GetAllFileInPosition(guild, fields, param, pageCallback, seriesCallback
     }, function (err, result) {
         seriesCallback(null, result);
     });
-}
-
-/**
- * 
- * @param {string} folder
- * @param {Discord.Snowflake} guild
- * @param {function(Error, any)} seriesCallback
- * @todo Delete this function : is now useless
- */
-function FindFolderLink(folder, guild, seriesCallback) {
-    let parts = folder.split('/');
-    var idResult = Import.GuildParameters.get(guild).url;
-
-    if (folder == '') {
-        seriesCallback(null, idResult);
-        return;
-    }
-
-    async.timesSeries(parts.length, function (i, next) {
-        let searchParam = {
-            auth: Import.auth,
-            q: "mimeType = 'application/vnd.google-apps.folder'",
-            fields: 'files(id)',
-            spaces: 'drive',
-            corpus: 'user'
-        }
-        searchParam.q += (" and '" + idResult + "' in parents and name = '" + parts[i] + "'");
-        Import.drive.files.list(searchParam, function (err, res) {
-            idResult = res.data.files[0].id;
-            next(null, res.data.files[0].id);
-        });
-    }, function (err, result) { seriesCallback(null, idResult); });
 }
 
 /*________________________________________*/
@@ -519,7 +487,6 @@ module.exports = {
     DeleteFile : DeleteFile, //AsyncOKOK
     GetFileLinkById : GetFileLinkById, //AsyncOKOK
     GetAllFileInPosition: GetAllFileInPosition, //AsyncOKOK
-    FindFolderLink: FindFolderLink, //AsyncOKOK
 
     SaveSettings : SaveSettings,
     LoadSettings : LoadSettings,
