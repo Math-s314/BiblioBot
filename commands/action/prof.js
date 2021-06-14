@@ -660,7 +660,9 @@ function UpdateCourse(message, options) {
         },
         //Add course to the drive (change version number depending on the wait boolean)
         function (cb) {
-            var version = (wait) ? [paramInfos[0], paramInfos[1] + 1] : [paramInfos[0] + 1, '0'];
+            var version = (wait) ? 
+                [paramInfos[0], (parseInt(paramInfos[1]) + 1).toString()] : 
+                [(parseInt(paramInfos[0]) + 1).toString(), '0'];
             var newParamInfos = [paramInfos[3], paramInfos[4], paramInfos[2], paramInfos[5], version[0], version[1]];
 
             AddCourse(message.attachments.first(1)[0], newParamInfos, CourseId, message, options, cb);
