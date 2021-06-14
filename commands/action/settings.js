@@ -253,16 +253,15 @@ function ModifyASetting(message, options) {
 
         //Validate all waiting files
         async.series([
-            //Change permission for al 'nr' files
+            //Change permission for all 'n' files
             function (call) {
-                BasicFunction.GetAllFileInPosition(guild, 'files(id, name, appProperties(subject, level, permission))', null, (err, res, param, callcall) => {
-                    //Each files async (take a lot of time)
-                    async.forEachOf(res.data.files, (file, i, cb) => {
-                        if (file.appProperties.permission == 'nr')
+                BasicFunction.GetAllFileInPosition(guild, 'files(id, appProperties(permission))', null, (err, res, param, callcall) => {
+                    async.forEachOf(res.data.files, function(file, i, cb) {
+                        if (file.appProperties.permission == 'n')
                             BasicFunction.SetInfoProperty(file.id, 'permission', 'v', cb);
                         else
                             cb(null, null);
-                    }, (err) => { callcall(null, true); });
+                    }, function(err) { callcall(null, true); });
                 }, call);
             },
             //Send confirmation
