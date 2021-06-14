@@ -98,7 +98,7 @@ function CreateASetting(message, options) {
  * 
  * @param {Discord.Message} message 
  * @param {string[]} options
- * @APICall 0->1+files'nr' (gen 0)
+ * @APICall 0->1+files'n' (gen 0)
  */
 function ModifyASetting(message, options) {
     const guild = message.guild.id;

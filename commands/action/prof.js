@@ -108,7 +108,7 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
         'type': param[3],
         'vera': param[4], 
         'verb': param[5], 
-        'permission': (Import.GuildParameters.get(guild).IsThereAValidation) ? 'nr' : 'v'
+        'permission': (Import.GuildParameters.get(guild).IsThereAValidation) ? 'n' : 'v'
     }; 
 
     //Prepare genenral metadata
