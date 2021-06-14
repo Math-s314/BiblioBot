@@ -405,12 +405,10 @@ function GetAllFileInPosition(guild, fields, param, pageCallback, seriesCallback
         pageSize: 1000,
         corpora : 'user'
     };
-    console.log(searchParam);
 
     //While boucle, gives results
     async.doWhilst(function (cb) {
         Import.drive.files.list(searchParam, function (err, res) {
-            console.log(res.data.files);
             searchParam.pageToken = res.nextPageToken;//To be able to get next page
             pageCallback(err, res, param, cb);//To allows caller to take data
         });

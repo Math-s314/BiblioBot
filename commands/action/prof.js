@@ -134,8 +134,6 @@ function AddCourse(attachement, param, CourseId, message, options, seriesCallbac
                 body: fs.createReadStream(attachement.name)
             };
 
-            console.log(fileMetadata);
-
             Import.drive.files.create({
                 auth: Import.auth,
                 requestBody: fileMetadata,
@@ -720,7 +718,6 @@ function DeleteCourse(message, options) {
         },
         //Get necessary information about file
         function (cb) {
-            console.log(filesAccess);
             //"Dynamic" ID and scope verification
             desired = filesAccess[(valide) ? "validate" : "unvalidate"];
             if (desired == null) {
